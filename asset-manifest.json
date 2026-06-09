@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/shafina/static/css/main.e6c13ad2.css",
-    "main.js": "/shafina/static/js/main.3c45c631.js",
+    "main.js": "/shafina/static/js/main.8f08ca43.js",
     "static/js/453.41886782.chunk.js": "/shafina/static/js/453.41886782.chunk.js",
     "index.html": "/shafina/index.html",
     "main.e6c13ad2.css.map": "/shafina/static/css/main.e6c13ad2.css.map",
-    "main.3c45c631.js.map": "/shafina/static/js/main.3c45c631.js.map",
+    "main.8f08ca43.js.map": "/shafina/static/js/main.8f08ca43.js.map",
     "453.41886782.chunk.js.map": "/shafina/static/js/453.41886782.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.e6c13ad2.css",
-    "static/js/main.3c45c631.js"
+    "static/js/main.8f08ca43.js"
   ]
 }
