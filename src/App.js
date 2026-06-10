@@ -187,48 +187,53 @@ function App() {
     } catch (error) { alert("Kuskure ya faru: " + error.message); }
   };
 
-  // SABON TSARIN UPLOAD NA CLOUDINARY (100% KYAUTA)
-  const handleStoreUpload = async (e, folderName, collectionName) => {
+const handleStoreUpload = async (e, folderName, collectionName) => {
     e.preventDefault();
-    if (uploadPassword !== UPLOAD_SECRET_PASSWORD) { alert("Kuskure: Password na Upload ba daidai ba ne!"); return; }
-    if (!selectedFile || !mediaTitle) { alert("Don Allah zaɓi fayil sannan ka saka suna!"); return; }
+    
+    if (uploadPassword !== UPLOAD_SECRET_PASSWORD) {
+        alert("Kuskure: Password bai daidai ba!");
+        return;
+    }
+    if (!selectedFile || !mediaTitle) {
+        alert("Don Allah zabi fayil sanna ka saka suna!");
+        return;
+    }
 
     setIsUploading(true);
-    setUploadProgress(15);
+    setUploadProgress(5);
 
-    const formData = new FormData();
-    formData.append("file", selectedFile);
-    formData.append("upload_preset", "shafina_preset"); 
-
-    try {
-      setUploadProgress(45);
-     const response = await fetch("https://api.cloudinary.com/v1_1/djzaxvlus/upload", {
-
-        method: "POST",
-        body: formData
-      });
-
-      if (!response.ok) throw new Error("Cloudinary server response failed");
-
-      const data = await response.json();
-      const downloadURL = data.secure_url;
-
-      setUploadProgress(85);
-
-      await addDoc(collection(db, collectionName), {
-        title: mediaTitle,
-        url: downloadURL,
-        createdAt: new Date()
-      });
-
-      setIsUploading(false); setUploadProgress(0); setSelectedFile(null); setMediaTitle(''); setUploadPassword('');
-      alert("An adana fayil ɗinka a ma'ajiyar Cloudinary cikin nasara!");
-    } catch (error) {
-      alert("Upload Error: " + error.message);
-      setIsUploading(false);
-      setUploadProgress(0);
-    }
-  };
+    // Kira aikin tura fayil zuwa Cloudinary
+    uploadFileToCloudinary(
+        selectedFile,
+        (progress) => {
+            // Wannan zai nuna ainihin tafiyar lodi (50% zuwa 100%) daidai
+            setUploadProgress(progress);
+        },
+        async (secureUrl) => {
+            try {
+                // Idan ya tafi cikin nasara, sai mu adana a Firestore
+                await addDoc(collection(db, collectionName), {
+                    title: mediaTitle,
+                    url: secureUrl,
+                    createdAt: new Date()
+                });
+                
+                setUploadProgress(0);
+                setIsUploading(false);
+                setSelectedFile(null);
+                setMediaTitle("");
+                alert("An dora fayil dinka a ma'ajiyar Cloudinary cikin nasara!");
+            } catch (dbError) {
+                setIsUploading(false);
+                alert("An samu matsala wajen adana a Database: " + dbError.message);
+            }
+        },
+        (errorMessage) => {
+            setIsUploading(false);
+            alert("Upload Error: " + errorMessage);
+        }
+    );
+};
 
   const handleStudentSubmit = async (e) => {
     e.preventDefault();
