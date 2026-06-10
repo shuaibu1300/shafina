@@ -115,7 +115,7 @@ function App() {
     const unsubClasses = onSnapshot(collection(db, "classes"), (snapshot) => {
       const cls = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setClasses(cls);
-      if(cls.length > 0 && !selectedClassId) setSelectedClassId(cls.id);
+      if(cls.length > 0 && !selectedClassId) setSelectedClassId(cls[0].id);
     });
 
     const unsubStudents = onSnapshot(collection(db, "students"), (snapshot) => setStudents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
@@ -123,7 +123,7 @@ function App() {
     const unsubSchClasses = onSnapshot(collection(db, "school_classes"), (snapshot) => {
       const sCls = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setSchoolClasses(sCls);
-      if(sCls.length > 0 && !selectedSchoolClassId) setSelectedSchoolClassId(sCls.id);
+      if(sCls.length > 0 && !selectedSchoolClassId) setSelectedSchoolClassId(sCls[0].id);
     });
 
     const unsubSchStudents = onSnapshot(collection(db, "school_students"), (snapshot) => setSchoolStudents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
@@ -146,7 +146,7 @@ function App() {
     } catch (error) { alert("Kuskure ya faru: " + error.message); }
   };
 
-  // INGANTACCEN TSARIN UPLOAD NA CLOUDINARY
+  // INGANTACCEN TSARIN UPLOAD NA CLOUDINARY DA ZAI GYARA MATSALAR 100%
   const handleStoreUpload = (e, folderName, collectionName) => {
     e.preventDefault();
     if (uploadPassword !== UPLOAD_SECRET_PASSWORD) { alert("Kuskure: Password na Upload ba daidai ba ne!"); return; }
@@ -160,7 +160,6 @@ function App() {
     formData.append("file", selectedFile);
     formData.append("upload_preset", "shafina_preset"); 
 
-    // Lissafin lodi daga 0% zuwa 100% daidai
     xhr.upload.addEventListener('progress', (e) => {
       if (e.lengthComputable) {
         const percentComplete = Math.round((e.loaded / e.total) * 100);
@@ -197,8 +196,8 @@ function App() {
       alert("Upload Failed: Duba hadin intanet dinka!");
       setIsUploading(false); setUploadProgress(0);
     });
-
-    xhr.open('POST', 'https://api.cloudinary.com/v1_1/djzaxvlus/upload', true);
+  // AN GYARA NAN: An sanya /auto/upload domin ya dauki duka nau'ikan fayiloli (Video, PDF, Hoto da Sauti)
+    xhr.open('POST', 'https://api.cloudinary.com/v1_1/djzaxvlus/auto/upload', true);
     xhr.send(formData);
   };
 
@@ -286,7 +285,7 @@ function App() {
               <h3>▶️ Sashin Bidiyo (Videos Folder)</h3>
               <form onSubmit={(e) => handleStoreUpload(e, 'videos', 'videos')} style={styles.vCard}>
                 <input style={styles.input} placeholder="Sunan Bidiyo" value={mediaTitle} onChange={e => setMediaTitle(e.target.value)} />
-                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="video/*" onChange={e => setSelectedFile(e.target.files)} />
+                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="video/*" onChange={e => setSelectedFile(e.target.files[0])} />
                 <input style={styles.input} type="password" placeholder="Upload Password" value={uploadPassword} onChange={e => setUploadPassword(e.target.value)} />
                 {isUploading && (
                   <div>
@@ -310,7 +309,7 @@ function App() {
               <h3>📄 Sashin Littattafai (PDFs Folder)</h3>
               <form onSubmit={(e) => handleStoreUpload(e, 'pdfs', 'pdfs')} style={styles.vCard}>
                 <input style={styles.input} placeholder="Sunan Littafi" value={mediaTitle} onChange={e => setMediaTitle(e.target.value)} />
-                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="application/pdf" onChange={e => setSelectedFile(e.target.files)} />
+                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="application/pdf" onChange={e => setSelectedFile(e.target.files[0])} />
                 <input style={styles.input} type="password" placeholder="Upload Password" value={uploadPassword} onChange={e => setUploadPassword(e.target.value)} />
                 {isUploading && (
                   <div>
@@ -334,7 +333,7 @@ function App() {
               <h3>🎵 Sashin Sauti (Audios Folder)</h3>
               <form onSubmit={(e) => handleStoreUpload(e, 'audios', 'audios')} style={styles.vCard}>
                 <input style={styles.input} placeholder="Sunan Sauti" value={mediaTitle} onChange={e => setMediaTitle(e.target.value)} />
-                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="audio/*" onChange={e => setSelectedFile(e.target.files)} />
+                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="audio/*" onChange={e => setSelectedFile(e.target.files[0])} />
                 <input style={styles.input} type="password" placeholder="Upload Password" value={uploadPassword} onChange={e => setUploadPassword(e.target.value)} />
                 {isUploading && (
                   <div>
@@ -358,7 +357,7 @@ function App() {
               <h3>🖼️ Sashin Hoto (Images Folder)</h3>
               <form onSubmit={(e) => handleStoreUpload(e, 'images', 'images')} style={styles.vCard}>
                 <input style={styles.input} placeholder="Sunan Hoto" value={mediaTitle} onChange={e => setMediaTitle(e.target.value)} />
-                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="image/*" onChange={e => setSelectedFile(e.target.files)} />
+                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="image/*" onChange={e => setSelectedFile(e.target.files[0])} />
                 <input style={styles.input} type="password" placeholder="Upload Password" value={uploadPassword} onChange={e => setUploadPassword(e.target.value)} />
                 {isUploading && (
                   <div>
@@ -445,8 +444,7 @@ function App() {
               ))}
             </div>
           )}
-
-          {currentScreen === 'expensive' && (
+{currentScreen === 'expensive' && (
             <div style={{ width: '90%', maxWidth: '468px' }}>
               <h3>💰 Expense Tracker</h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
