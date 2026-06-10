@@ -17,47 +17,6 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Bayanan asusunka na Cloudinary
-const CLOUDINARY_CLOUD_NAME = 'djzaxvlus';
-const CLOUDINARY_UPLOAD_PRESET = 'shafina_preset';
-const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/upload`;
-
-export function uploadFileToCloudinary(file, onProgress, onSuccess, onError) {
-    const xhr = new XMLHttpRequest();
-    const formData = new FormData();
-    
-    formData.append('file', file);
-    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-
-    xhr.upload.addEventListener('progress', (e) => {
-        if (e.lengthComputable) {
-            const percentComplete = Math.round((e.loaded / e.total) * 50) + 50;
-            onProgress(percentComplete);
-        }
-    });
-
-    xhr.addEventListener('load', () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-            try {
-                const response = JSON.parse(xhr.responseText);
-                onSuccess(response.secure_url);
-            } catch (err) {
-                onError('An samu matsala wajen karbar amsar Cloudinary');
-            }
-        } else {
-            onError('Cloudinary server response failed');
-        }
-    });
-
-    xhr.addEventListener('error', () => {
-        onError('Upload Failed: Duba haɗin intanet ɗinka');
-    });
-
-    xhr.open('POST', CLOUDINARY_URL, true);
-    xhr.send(formData);
-}
-
-
 // Adsterra Ad Component
 const AdBanner = () => {
   const bannerRef = useRef(null);
@@ -187,53 +146,61 @@ function App() {
     } catch (error) { alert("Kuskure ya faru: " + error.message); }
   };
 
-const handleStoreUpload = async (e, folderName, collectionName) => {
+  // INGANTACCEN TSARIN UPLOAD NA CLOUDINARY
+  const handleStoreUpload = (e, folderName, collectionName) => {
     e.preventDefault();
-    
-    if (uploadPassword !== UPLOAD_SECRET_PASSWORD) {
-        alert("Kuskure: Password bai daidai ba!");
-        return;
-    }
-    if (!selectedFile || !mediaTitle) {
-        alert("Don Allah zabi fayil sanna ka saka suna!");
-        return;
-    }
+    if (uploadPassword !== UPLOAD_SECRET_PASSWORD) { alert("Kuskure: Password na Upload ba daidai ba ne!"); return; }
+    if (!selectedFile || !mediaTitle) { alert("Don Allah zaɓi fayil sannan ka saka suna!"); return; }
 
     setIsUploading(true);
-    setUploadProgress(5);
+    setUploadProgress(0);
 
-    // Kira aikin tura fayil zuwa Cloudinary
-    uploadFileToCloudinary(
-        selectedFile,
-        (progress) => {
-            // Wannan zai nuna ainihin tafiyar lodi (50% zuwa 100%) daidai
-            setUploadProgress(progress);
-        },
-        async (secureUrl) => {
-            try {
-                // Idan ya tafi cikin nasara, sai mu adana a Firestore
-                await addDoc(collection(db, collectionName), {
-                    title: mediaTitle,
-                    url: secureUrl,
-                    createdAt: new Date()
-                });
-                
-                setUploadProgress(0);
-                setIsUploading(false);
-                setSelectedFile(null);
-                setMediaTitle("");
-                alert("An dora fayil dinka a ma'ajiyar Cloudinary cikin nasara!");
-            } catch (dbError) {
-                setIsUploading(false);
-                alert("An samu matsala wajen adana a Database: " + dbError.message);
-            }
-        },
-        (errorMessage) => {
-            setIsUploading(false);
-            alert("Upload Error: " + errorMessage);
+    const xhr = new XMLHttpRequest();
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+    formData.append("upload_preset", "shafina_preset"); 
+
+    // Lissafin lodi daga 0% zuwa 100% daidai
+    xhr.upload.addEventListener('progress', (e) => {
+      if (e.lengthComputable) {
+        const percentComplete = Math.round((e.loaded / e.total) * 100);
+        setUploadProgress(percentComplete);
+      }
+    });
+
+    xhr.addEventListener('load', async () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          const downloadURL = data.secure_url;
+
+          // Adana a Firebase Firestore
+          await addDoc(collection(db, collectionName), {
+            title: mediaTitle,
+            url: downloadURL,
+            createdAt: new Date()
+          });
+
+          setIsUploading(false); setUploadProgress(0); setSelectedFile(null); setMediaTitle(''); setUploadPassword('');
+          alert("An adana fayil ɗinka a ma'ajiyar Cloudinary cikin nasara!");
+        } catch (error) {
+          alert("Error: An samu matsala wajen karanta amsar server.");
+          setIsUploading(false); setUploadProgress(0);
         }
-    );
-};
+      } else {
+        alert("Upload Error: Cloudinary server response failed");
+        setIsUploading(false); setUploadProgress(0);
+      }
+    });
+
+    xhr.addEventListener('error', () => {
+      alert("Upload Failed: Duba hadin intanet dinka!");
+      setIsUploading(false); setUploadProgress(0);
+    });
+
+    xhr.open('POST', 'https://api.cloudinary.com/v1_1/djzaxvlus/upload', true);
+    xhr.send(formData);
+  };
 
   const handleStudentSubmit = async (e) => {
     e.preventDefault();
