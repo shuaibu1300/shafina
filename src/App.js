@@ -51,11 +51,12 @@ function App() {
 
   // TSARIN KULA DA UPLOAD MAFI TSARO (TANTANCE SASHEN DA KE AIKI)
   const [uploadState, setUploadState] = useState({
-    activeSection: null, // zai iya zama 'video', 'pdf', 'audio', ko 'image'
+    activeSection: null, 
     progress: 0,
     isUploading: false
   });
-const [videoFile, setVideoFile] = useState(null);
+
+  const [videoFile, setVideoFile] = useState(null);
   const [videoTitle, setVideoTitle] = useState('');
   const [videoPassword, setVideoPassword] = useState('');
 
@@ -124,7 +125,7 @@ const [videoFile, setVideoFile] = useState(null);
     const unsubClasses = onSnapshot(collection(db, "classes"), (snapshot) => {
       const cls = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setClasses(cls);
-      if(cls.length > 0 && !selectedClassId) setSelectedClassId(cls[0].id);
+      if(cls.length > 0 && !selectedClassId) setSelectedClassId(cls.id);
     });
 
     const unsubStudents = onSnapshot(collection(db, "students"), (snapshot) => setStudents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
@@ -132,9 +133,10 @@ const [videoFile, setVideoFile] = useState(null);
     const unsubSchClasses = onSnapshot(collection(db, "school_classes"), (snapshot) => {
       const sCls = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setSchoolClasses(sCls);
-      if(sCls.length > 0 && !selectedSchoolClassId) setSelectedSchoolClassId(sCls[0].id);
+      if(sCls.length > 0 && !selectedSchoolClassId) setSelectedSchoolClassId(sCls.id);
     });
-const unsubSchStudents = onSnapshot(collection(db, "school_students"), (snapshot) => setSchoolStudents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
+
+    const unsubSchStudents = onSnapshot(collection(db, "school_students"), (snapshot) => setSchoolStudents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
 
     const qTrans = query(collection(db, "transactions"), orderBy("date", "desc"));
     const unsubTrans = onSnapshot(qTrans, (snapshot) => setTransactions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
@@ -153,8 +155,7 @@ const unsubSchStudents = onSnapshot(collection(db, "school_students"), (snapshot
       else { await createUserWithEmailAndPassword(auth, email, password); alert("An ƙirƙiri asusu cikin nasara!"); setIsLogin(true); }
     } catch (error) { alert("Kuskure ya faru: " + error.message); }
   };
-
-  const handleStoreUpload = (e, file, title, pass, sectionName, collectionName, setFile, setTitle, setPass) => {
+const handleStoreUpload = (e, file, title, pass, sectionName, collectionName, setFile, setTitle, setPass) => {
     e.preventDefault();
     if (pass !== UPLOAD_SECRET_PASSWORD) { alert("Kuskure: Password na Upload ba daidai ba ne!"); return; }
     if (!file || !title) { alert("Don Allah zaɓi fayil sannan ka saka suna!"); return; }
@@ -164,6 +165,7 @@ const unsubSchStudents = onSnapshot(collection(db, "school_students"), (snapshot
     const xhr = new XMLHttpRequest();
     const formData = new FormData();
     formData.append("file", file);
+    // AN SAKA SHAFINA_PRESET ANAN
     formData.append("upload_preset", "shafina_preset"); 
 
     xhr.upload.addEventListener('progress', (e) => {
@@ -203,10 +205,12 @@ const unsubSchStudents = onSnapshot(collection(db, "school_students"), (snapshot
       setUploadState({ activeSection: null, progress: 0, isUploading: false });
     });
 
-    xhr.open('POST', 'https://api.cloudinary.com/v1_1/djzaxvlus/auto/upload', true);
+    // AN CANZA ADIRESHIN CLOUDINARY ZUWA NAKA NA GASKE ANAN HANYAR PROJECT ID
+    xhr.open('POST', 'https://api.cloudinary.com/v1_1/2d8acfc4-63bc-4dfd-abec-0af027536891/auto/upload', true);
     xhr.send(formData);
   };
-const handleStudentSubmit = async (e) => {
+
+  const handleStudentSubmit = async (e) => {
     e.preventDefault();
     if(!selectedClassId || !stdName) return alert("Cika sunan ɗalibi da aji!");
     await addDoc(collection(db, "students"), { classId: selectedClassId, name: stdName, age: stdAge, date: stdDate, time: stdTime, description: stdDesc, status: 'Present' });
@@ -225,8 +229,7 @@ const handleStudentSubmit = async (e) => {
     await addDoc(collection(db, "transactions"), { title: transTitle, amount: parseFloat(transAmount)||0, type: transType, date: transDate, description: transDesc });
     setTransTitle(''); setTransAmount(''); setTransDate(''); setTransDesc(''); alert("An ƙara bayanin kuɗi!");
   };
-
-  const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
   const totalExpense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
   const totalBalance = totalIncome - totalExpense;
 
@@ -244,7 +247,7 @@ const handleStudentSubmit = async (e) => {
     button: { width: '100%', padding: '10px', backgroundColor: '#319795', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' },
     grid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', width: '90%', maxWidth: '468px', marginTop: '10px' },
     gridBtn: { padding: '20px 10px', backgroundColor: '#2d3748', border: '1px solid #4a5568', color: '#fff', borderRadius: '8px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' },
-    vCard: { backgroundColor: '#2d3748', borderRadius: '8px', padding: '15px', margin: '15px 0', width: '100%', boxSizing: 'border-box', textAlign: 'left' },
+    vCard: { backgroundColor: '#2d3748', borderRadius: '8px', padding: '15px', margin: '15px 0', width: '100%', boxSizing: 'box', textAlign: 'left' },
     progress: { backgroundColor: '#4a5568', borderRadius: '4px', overflow: 'hidden', margin: '10px 0', height: '10px' }
   };
 
@@ -271,7 +274,8 @@ const handleStudentSubmit = async (e) => {
             <span>📧 {user.email}</span>
             {currentScreen !== 'dashboard' && <button style={{ backgroundColor: '#4a5568', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }} onClick={() => setCurrentScreen('dashboard')}>⬅️ Menun Baya</button>}
           </div>
-<input type="text" placeholder="Nemo rubutu a nan..." style={styles.searchBar} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+
+          <input type="text" placeholder="Nemo rubutu a nan..." style={styles.searchBar} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
 
           {currentScreen === 'dashboard' && (
             <div style={styles.grid}>
@@ -289,7 +293,7 @@ const handleStudentSubmit = async (e) => {
               <h3>▶️ Sashin Bidiyo (Videos Folder)</h3>
               <form onSubmit={(e) => handleStoreUpload(e, videoFile, videoTitle, videoPassword, 'video', 'videos', setVideoFile, setVideoTitle, setVideoPassword)} style={styles.vCard}>
                 <input style={styles.input} placeholder="Sunan Bidiyo" value={videoTitle} onChange={e => setVideoTitle(e.target.value)} />
-                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="video/*" onChange={e => setVideoFile(e.target.files[0])} />
+                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="video/*" onChange={e => setVideoFile(e.target.files)} />
                 <input style={styles.input} type="password" placeholder="Upload Password" value={videoPassword} onChange={e => setVideoPassword(e.target.value)} />
                 {uploadState.isUploading && uploadState.activeSection === 'video' && (
                   <div>
@@ -307,13 +311,12 @@ const handleStudentSubmit = async (e) => {
               ))}
             </div>
           )}
-
-          {currentScreen === 'pdf' && (
+{currentScreen === 'pdf' && (
             <div style={{ width: '90%', maxWidth: '468px' }}>
               <h3>📄 Sashin Littattafai (PDFs Folder)</h3>
               <form onSubmit={(e) => handleStoreUpload(e, pdfFile, pdfTitle, pdfPassword, 'pdf', 'pdfs', setPdfFile, setPdfTitle, setPdfPassword)} style={styles.vCard}>
                 <input style={styles.input} placeholder="Sunan Littafi" value={pdfTitle} onChange={e => setPdfTitle(e.target.value)} />
-                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="application/pdf" onChange={e => setPdfFile(e.target.files[0])} />
+                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="application/pdf" onChange={e => setPdfFile(e.target.files)} />
                 <input style={styles.input} type="password" placeholder="Upload Password" value={pdfPassword} onChange={e => setPdfPassword(e.target.value)} />
                 {uploadState.isUploading && uploadState.activeSection === 'pdf' && (
                   <div>
@@ -331,12 +334,13 @@ const handleStudentSubmit = async (e) => {
               ))}
             </div>
           )}
-{currentScreen === 'audio' && (
+
+          {currentScreen === 'audio' && (
             <div style={{ width: '90%', maxWidth: '468px' }}>
               <h3>🎵 Sashin Sauti (Audios Folder)</h3>
               <form onSubmit={(e) => handleStoreUpload(e, audioFile, audioTitle, audioPassword, 'audio', 'audios', setAudioFile, setAudioTitle, setAudioPassword)} style={styles.vCard}>
                 <input style={styles.input} placeholder="Sunan Sauti" value={audioTitle} onChange={e => setAudioTitle(e.target.value)} />
-                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="audio/*" onChange={e => setAudioFile(e.target.files[0])} />
+                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="audio/*" onChange={e => setAudioFile(e.target.files)} />
                 <input style={styles.input} type="password" placeholder="Upload Password" value={audioPassword} onChange={e => setAudioPassword(e.target.value)} />
                 {uploadState.isUploading && uploadState.activeSection === 'audio' && (
                   <div>
@@ -360,7 +364,7 @@ const handleStudentSubmit = async (e) => {
               <h3>🖼️ Sashin Hoto (Images Folder)</h3>
               <form onSubmit={(e) => handleStoreUpload(e, imageFile, imageTitle, imagePassword, 'image', 'images', setImageFile, setImageTitle, setImagePassword)} style={styles.vCard}>
                 <input style={styles.input} placeholder="Sunan Hoto" value={imageTitle} onChange={e => setImageTitle(e.target.value)} />
-                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="image/*" onChange={e => setImageFile(e.target.files[0])} />
+                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="image/*" onChange={e => setImageFile(e.target.files)} />
                 <input style={styles.input} type="password" placeholder="Upload Password" value={imagePassword} onChange={e => setImagePassword(e.target.value)} />
                 {uploadState.isUploading && uploadState.activeSection === 'image' && (
                   <div>
@@ -410,8 +414,7 @@ const handleStudentSubmit = async (e) => {
               ))}
             </div>
           )}
-
-          {currentScreen === 'school management' && (
+{currentScreen === 'school management' && (
             <div style={{ width: '90%', maxWidth: '468px' }}>
               <h3>🏫 School Management System</h3>
               <div style={styles.vCard}>
