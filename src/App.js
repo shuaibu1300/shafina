@@ -33,7 +33,7 @@ const AdBanner = () => {
           'params' : {}
         };
       `;
-const script = document.createElement('script');
+      const script = document.createElement('script');
       script.type = 'text/javascript';
       script.src = 'https://www.highperformanceformat.com/34ff23d0cccf8ab433c8f1526824df48/invoke.js';
       bannerRef.current.appendChild(conf);
@@ -80,6 +80,7 @@ function App() {
   const [pdfs, setPdfs] = useState([]);
   const [audios, setAudios] = useState([]);
   const [images, setImages] = useState([]);
+
   // ATTENDANCE STATES
   const [classes, setClasses] = useState([]);
   const [newClassName, setNewClassName] = useState('');
@@ -90,8 +91,7 @@ function App() {
   const [stdDate, setStdDate] = useState('');
   const [stdTime, setStdTime] = useState('');
   const [stdDesc, setStdDesc] = useState('');
-
-  // SCHOOL MANAGEMENT STATES
+// SCHOOL MANAGEMENT STATES
   const [schoolClasses, setSchoolClasses] = useState([]);
   const [newSchoolClassName, setNewSchoolClassName] = useState('');
   const [selectedSchoolClassId, setSelectedSchoolClassId] = useState('');
@@ -194,7 +194,8 @@ const unsubSchStudents = onSnapshot(collection(db, "school_students"), (snapshot
             url: downloadURL,
             createdAt: new Date()
           });
-setUploading(false); setProgress(0); setFile(null); setTitle(''); setPass('');
+
+          setUploading(false); setProgress(0); setFile(null); setTitle(''); setPass('');
           alert("An adana fayil ɗinka cikin nasara!");
         } catch (error) {
           alert("Error: An samu matsala wajen karanta amsar server.");
@@ -205,8 +206,7 @@ setUploading(false); setProgress(0); setFile(null); setTitle(''); setPass('');
         setUploading(false); setProgress(0);
       }
     });
-
-    xhr.addEventListener('error', () => {
+xhr.addEventListener('error', () => {
       alert("Upload Failed: Duba hadin intanet dinka!");
       setUploading(false); setProgress(0);
     });
@@ -244,7 +244,8 @@ setUploading(false); setProgress(0); setFile(null); setTitle(''); setPass('');
     { name: 'Audio', icon: '🎵' }, { name: 'Attendance', icon: '📅' }, { name: 'School Management', icon: '🏫' },
     { name: 'Expensive', icon: '💰' }
   ];
-const styles = {
+
+  const styles = {
     container: { backgroundColor: '#1a202c', color: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', fontFamily: 'sans-serif', padding: '10px' },
     card: { backgroundColor: '#2d3748', padding: '20px', borderRadius: '8px', width: '90%', maxWidth: '468px', textAlign: 'center', margin: '15px auto' },
     input: { width: '100%', padding: '12px', margin: '8px 0', borderRadius: '4px', border: '1px solid #4a5568', backgroundColor: '#1a202c', color: '#fff', boxSizing: 'border-box' },
@@ -339,8 +340,7 @@ const styles = {
               ))}
             </div>
           )}
-
-          {currentScreen === 'audio' && (
+{currentScreen === 'audio' && (
             <div style={{ width: '90%', maxWidth: '468px' }}>
               <h3>🎵 Sashin Sauti (Audios Folder)</h3>
               <form onSubmit={(e) => handleStoreUpload(e, audioFile, audioTitle, audioPassword, setAudioProgress, setAudioUploading, setAudioFile, setAudioTitle, setAudioPassword, 'audios')} style={styles.vCard}>
@@ -353,7 +353,7 @@ const styles = {
                     <p style={{ fontSize: '12px', textAlign: 'center' }}>Ana ɗorawa: {audioProgress}%</p>
                   </div>
                 )}
-<button style={styles.button} type="submit" disabled={audioUploading}>{audioUploading ? 'Yana Tafiya...' : 'Ɗora Sauti ta Store'}</button>
+                <button style={styles.button} type="submit" disabled={audioUploading}>{audioUploading ? 'Yana Tafiya...' : 'Ɗora Sauti ta Store'}</button>
               </form>
               {audios.filter(a => a.title.toLowerCase().includes(searchQuery.toLowerCase())).map(a => (
                 <div key={a.id} style={styles.vCard}>
@@ -419,7 +419,8 @@ const styles = {
               ))}
             </div>
           )}
-{currentScreen === 'school management' && (
+
+          {currentScreen === 'school management' && (
             <div style={{ width: '90%', maxWidth: '468px' }}>
               <h3>🏫 School Management System</h3>
               <div style={styles.vCard}>
@@ -504,4 +505,3 @@ const styles = {
 }
 
 export default App;
-
