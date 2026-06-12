@@ -49,30 +49,27 @@ function App() {
   const [currentScreen, setCurrentScreen] = useState('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // AN RABA STATE NA UPLOAD ANAN DAKAN-DA-KAN
-  const [videoFile, setVideoFile] = useState(null);
+  // TSARIN KULA DA UPLOAD MAFI TSARO (TANTANCE SASHEN DA KE AIKI)
+  const [uploadState, setUploadState] = useState({
+    activeSection: null, // zai iya zama 'video', 'pdf', 'audio', ko 'image'
+    progress: 0,
+    isUploading: false
+  });
+const [videoFile, setVideoFile] = useState(null);
   const [videoTitle, setVideoTitle] = useState('');
   const [videoPassword, setVideoPassword] = useState('');
-  const [videoProgress, setVideoProgress] = useState(0);
-  const [videoUploading, setVideoUploading] = useState(false);
 
   const [pdfFile, setPdfFile] = useState(null);
   const [pdfTitle, setPdfTitle] = useState('');
   const [pdfPassword, setPdfPassword] = useState('');
-  const [pdfProgress, setPdfProgress] = useState(0);
-  const [pdfUploading, setPdfUploading] = useState(false);
 
   const [audioFile, setAudioFile] = useState(null);
   const [audioTitle, setAudioTitle] = useState('');
   const [audioPassword, setAudioPassword] = useState('');
-  const [audioProgress, setAudioProgress] = useState(0);
-  const [audioUploading, setAudioUploading] = useState(false);
 
   const [imageFile, setImageFile] = useState(null);
   const [imageTitle, setImageTitle] = useState('');
   const [imagePassword, setImagePassword] = useState('');
-  const [imageProgress, setImageProgress] = useState(0);
-  const [imageUploading, setImageUploading] = useState(false);
 
   const [videos, setVideos] = useState([]);
   const [pdfs, setPdfs] = useState([]);
@@ -127,7 +124,7 @@ function App() {
     const unsubClasses = onSnapshot(collection(db, "classes"), (snapshot) => {
       const cls = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setClasses(cls);
-      if(cls.length > 0 && !selectedClassId) setSelectedClassId(cls.id);
+      if(cls.length > 0 && !selectedClassId) setSelectedClassId(cls[0].id);
     });
 
     const unsubStudents = onSnapshot(collection(db, "students"), (snapshot) => setStudents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
@@ -135,10 +132,9 @@ function App() {
     const unsubSchClasses = onSnapshot(collection(db, "school_classes"), (snapshot) => {
       const sCls = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setSchoolClasses(sCls);
-      if(sCls.length > 0 && !selectedSchoolClassId) setSelectedSchoolClassId(sCls.id);
+      if(sCls.length > 0 && !selectedSchoolClassId) setSelectedSchoolClassId(sCls[0].id);
     });
-
-    const unsubSchStudents = onSnapshot(collection(db, "school_students"), (snapshot) => setSchoolStudents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
+const unsubSchStudents = onSnapshot(collection(db, "school_students"), (snapshot) => setSchoolStudents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
 
     const qTrans = query(collection(db, "transactions"), orderBy("date", "desc"));
     const unsubTrans = onSnapshot(qTrans, (snapshot) => setTransactions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
@@ -148,7 +144,8 @@ function App() {
       unsubClasses(); unsubStudents(); unsubSchClasses(); unsubSchStudents(); unsubTrans();
     };
   }, [selectedClassId, selectedSchoolClassId]);
-const handleAuth = async (e) => {
+
+  const handleAuth = async (e) => {
     e.preventDefault();
     if (!email || !password) { alert("Don Allah cika duka akwatunan!"); return; }
     try {
@@ -157,13 +154,12 @@ const handleAuth = async (e) => {
     } catch (error) { alert("Kuskure ya faru: " + error.message); }
   };
 
-  const handleStoreUpload = (e, file, title, pass, setProgress, setUploading, setFile, setTitle, setPass, collectionName) => {
+  const handleStoreUpload = (e, file, title, pass, sectionName, collectionName, setFile, setTitle, setPass) => {
     e.preventDefault();
     if (pass !== UPLOAD_SECRET_PASSWORD) { alert("Kuskure: Password na Upload ba daidai ba ne!"); return; }
     if (!file || !title) { alert("Don Allah zaɓi fayil sannan ka saka suna!"); return; }
 
-    setUploading(true);
-    setProgress(0);
+    setUploadState({ activeSection: sectionName, progress: 0, isUploading: true });
 
     const xhr = new XMLHttpRequest();
     const formData = new FormData();
@@ -173,7 +169,7 @@ const handleAuth = async (e) => {
     xhr.upload.addEventListener('progress', (e) => {
       if (e.lengthComputable) {
         const percentComplete = Math.round((e.loaded / e.total) * 100);
-        setProgress(percentComplete);
+        setUploadState(prev => ({ ...prev, progress: percentComplete }));
       }
     });
 
@@ -189,28 +185,28 @@ const handleAuth = async (e) => {
             createdAt: new Date()
           });
 
-          setUploading(false); setProgress(0); setFile(null); setTitle(''); setPass('');
+          setUploadState({ activeSection: null, progress: 0, isUploading: false });
+          setFile(null); setTitle(''); setPass('');
           alert("An adana fayil ɗinka cikin nasara!");
         } catch (error) {
           alert("Error: An samu matsala wajen karanta amsar server.");
-          setUploading(false); setProgress(0);
+          setUploadState({ activeSection: null, progress: 0, isUploading: false });
         }
       } else {
         alert("Upload Error: Cloudinary server response failed");
-        setUploading(false); setProgress(0);
+        setUploadState({ activeSection: null, progress: 0, isUploading: false });
       }
     });
 
     xhr.addEventListener('error', () => {
       alert("Upload Failed: Duba hadin intanet dinka!");
-      setUploading(false); setProgress(0);
+      setUploadState({ activeSection: null, progress: 0, isUploading: false });
     });
 
     xhr.open('POST', 'https://api.cloudinary.com/v1_1/djzaxvlus/auto/upload', true);
     xhr.send(formData);
   };
-
-  const handleStudentSubmit = async (e) => {
+const handleStudentSubmit = async (e) => {
     e.preventDefault();
     if(!selectedClassId || !stdName) return alert("Cika sunan ɗalibi da aji!");
     await addDoc(collection(db, "students"), { classId: selectedClassId, name: stdName, age: stdAge, date: stdDate, time: stdTime, description: stdDesc, status: 'Present' });
@@ -223,7 +219,8 @@ const handleAuth = async (e) => {
     await addDoc(collection(db, "school_students"), { classId: selectedSchoolClassId, name: schName, age: schAge, date: schDate, term: schTerm, amount: parseFloat(schAmount)||0, description: schDesc });
     setSchName(''); setSchAge(''); setSchDate(''); setSchAmount(''); setSchDesc(''); alert("An adana bayanin kuɗin makaranta!");
   };
-const handleTransactionSubmit = async (e) => {
+
+  const handleTransactionSubmit = async (e) => {
     e.preventDefault();
     await addDoc(collection(db, "transactions"), { title: transTitle, amount: parseFloat(transAmount)||0, type: transType, date: transDate, description: transDesc });
     setTransTitle(''); setTransAmount(''); setTransDate(''); setTransDesc(''); alert("An ƙara bayanin kuɗi!");
@@ -274,8 +271,7 @@ const handleTransactionSubmit = async (e) => {
             <span>📧 {user.email}</span>
             {currentScreen !== 'dashboard' && <button style={{ backgroundColor: '#4a5568', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }} onClick={() => setCurrentScreen('dashboard')}>⬅️ Menun Baya</button>}
           </div>
-
-          <input type="text" placeholder="Nemo rubutu a nan..." style={styles.searchBar} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+<input type="text" placeholder="Nemo rubutu a nan..." style={styles.searchBar} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
 
           {currentScreen === 'dashboard' && (
             <div style={styles.grid}>
@@ -291,17 +287,17 @@ const handleTransactionSubmit = async (e) => {
           {currentScreen === 'video' && (
             <div style={{ width: '90%', maxWidth: '468px' }}>
               <h3>▶️ Sashin Bidiyo (Videos Folder)</h3>
-              <form onSubmit={(e) => handleStoreUpload(e, videoFile, videoTitle, videoPassword, setVideoProgress, setVideoUploading, setVideoFile, setVideoTitle, setVideoPassword, 'videos')} style={styles.vCard}>
+              <form onSubmit={(e) => handleStoreUpload(e, videoFile, videoTitle, videoPassword, 'video', 'videos', setVideoFile, setVideoTitle, setVideoPassword)} style={styles.vCard}>
                 <input style={styles.input} placeholder="Sunan Bidiyo" value={videoTitle} onChange={e => setVideoTitle(e.target.value)} />
-                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="video/*" onChange={e => setVideoFile(e.target.files)} />
+                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="video/*" onChange={e => setVideoFile(e.target.files[0])} />
                 <input style={styles.input} type="password" placeholder="Upload Password" value={videoPassword} onChange={e => setVideoPassword(e.target.value)} />
-                {videoUploading && (
+                {uploadState.isUploading && uploadState.activeSection === 'video' && (
                   <div>
-                    <div style={styles.progress}><div style={{ width: `${videoProgress}%`, backgroundColor: '#319795', height: '100%' }}></div></div>
-                    <p style={{ fontSize: '12px', textAlign: 'center' }}>Ana ɗorawa: {videoProgress}%</p>
+                    <div style={styles.progress}><div style={{ width: `${uploadState.progress}%`, backgroundColor: '#319795', height: '100%' }}></div></div>
+                    <p style={{ fontSize: '12px', textAlign: 'center' }}>Ana ɗorawa: {uploadState.progress}%</p>
                   </div>
                 )}
-                <button style={styles.button} type="submit" disabled={videoUploading}>{videoUploading ? 'Yana Tafiya...' : 'Ɗora Bidiyo ta Store'}</button>
+                <button style={styles.button} type="submit" disabled={uploadState.isUploading}>{uploadState.isUploading && uploadState.activeSection === 'video' ? 'Yana Tafiya...' : 'Ɗora Bidiyo ta Store'}</button>
               </form>
               {videos.filter(v => v.title.toLowerCase().includes(searchQuery.toLowerCase())).map(v => (
                 <div key={v.id} style={styles.vCard}>
@@ -315,17 +311,17 @@ const handleTransactionSubmit = async (e) => {
           {currentScreen === 'pdf' && (
             <div style={{ width: '90%', maxWidth: '468px' }}>
               <h3>📄 Sashin Littattafai (PDFs Folder)</h3>
-              <form onSubmit={(e) => handleStoreUpload(e, pdfFile, pdfTitle, pdfPassword, setPdfProgress, setPdfUploading, setPdfFile, setPdfTitle, setPdfPassword, 'pdfs')} style={styles.vCard}>
+              <form onSubmit={(e) => handleStoreUpload(e, pdfFile, pdfTitle, pdfPassword, 'pdf', 'pdfs', setPdfFile, setPdfTitle, setPdfPassword)} style={styles.vCard}>
                 <input style={styles.input} placeholder="Sunan Littafi" value={pdfTitle} onChange={e => setPdfTitle(e.target.value)} />
-                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="application/pdf" onChange={e => setPdfFile(e.target.files)} />
+                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="application/pdf" onChange={e => setPdfFile(e.target.files[0])} />
                 <input style={styles.input} type="password" placeholder="Upload Password" value={pdfPassword} onChange={e => setPdfPassword(e.target.value)} />
-                {pdfUploading && (
+                {uploadState.isUploading && uploadState.activeSection === 'pdf' && (
                   <div>
-                    <div style={styles.progress}><div style={{ width: `${pdfProgress}%`, backgroundColor: '#319795', height: '100%' }}></div></div>
-                    <p style={{ fontSize: '12px', textAlign: 'center' }}>Ana ɗorawa: {pdfProgress}%</p>
+                    <div style={styles.progress}><div style={{ width: `${uploadState.progress}%`, backgroundColor: '#319795', height: '100%' }}></div></div>
+                    <p style={{ fontSize: '12px', textAlign: 'center' }}>Ana ɗorawa: {uploadState.progress}%</p>
                   </div>
                 )}
-<button style={styles.button} type="submit" disabled={pdfUploading}>{pdfUploading ? 'Yana Tafiya...' : 'Ɗora PDF ta Store'}</button>
+                <button style={styles.button} type="submit" disabled={uploadState.isUploading}>{uploadState.isUploading && uploadState.activeSection === 'pdf' ? 'Yana Tafiya...' : 'Ɗora PDF ta Store'}</button>
               </form>
               {pdfs.filter(p => p.title.toLowerCase().includes(searchQuery.toLowerCase())).map(p => (
                 <div key={p.id} style={styles.vCard}>
@@ -335,21 +331,20 @@ const handleTransactionSubmit = async (e) => {
               ))}
             </div>
           )}
-
-          {currentScreen === 'audio' && (
+{currentScreen === 'audio' && (
             <div style={{ width: '90%', maxWidth: '468px' }}>
               <h3>🎵 Sashin Sauti (Audios Folder)</h3>
-              <form onSubmit={(e) => handleStoreUpload(e, audioFile, audioTitle, audioPassword, setAudioProgress, setAudioUploading, setAudioFile, setAudioTitle, setAudioPassword, 'audios')} style={styles.vCard}>
+              <form onSubmit={(e) => handleStoreUpload(e, audioFile, audioTitle, audioPassword, 'audio', 'audios', setAudioFile, setAudioTitle, setAudioPassword)} style={styles.vCard}>
                 <input style={styles.input} placeholder="Sunan Sauti" value={audioTitle} onChange={e => setAudioTitle(e.target.value)} />
-                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="audio/*" onChange={e => setAudioFile(e.target.files)} />
+                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="audio/*" onChange={e => setAudioFile(e.target.files[0])} />
                 <input style={styles.input} type="password" placeholder="Upload Password" value={audioPassword} onChange={e => setAudioPassword(e.target.value)} />
-                {audioUploading && (
+                {uploadState.isUploading && uploadState.activeSection === 'audio' && (
                   <div>
-                    <div style={styles.progress}><div style={{ width: `${audioProgress}%`, backgroundColor: '#319795', height: '100%' }}></div></div>
-                    <p style={{ fontSize: '12px', textAlign: 'center' }}>Ana ɗorawa: {audioProgress}%</p>
+                    <div style={styles.progress}><div style={{ width: `${uploadState.progress}%`, backgroundColor: '#319795', height: '100%' }}></div></div>
+                    <p style={{ fontSize: '12px', textAlign: 'center' }}>Ana ɗorawa: {uploadState.progress}%</p>
                   </div>
                 )}
-                <button style={styles.button} type="submit" disabled={audioUploading}>{audioUploading ? 'Yana Tafiya...' : 'Ɗora Sauti ta Store'}</button>
+                <button style={styles.button} type="submit" disabled={uploadState.isUploading}>{uploadState.isUploading && uploadState.activeSection === 'audio' ? 'Yana Tafiya...' : 'Ɗora Sauti ta Store'}</button>
               </form>
               {audios.filter(a => a.title.toLowerCase().includes(searchQuery.toLowerCase())).map(a => (
                 <div key={a.id} style={styles.vCard}>
@@ -363,17 +358,17 @@ const handleTransactionSubmit = async (e) => {
           {currentScreen === 'image' && (
             <div style={{ width: '90%', maxWidth: '468px' }}>
               <h3>🖼️ Sashin Hoto (Images Folder)</h3>
-              <form onSubmit={(e) => handleStoreUpload(e, imageFile, imageTitle, imagePassword, setImageProgress, setImageUploading, setImageFile, setImageTitle, setImagePassword, 'images')} style={styles.vCard}>
+              <form onSubmit={(e) => handleStoreUpload(e, imageFile, imageTitle, imagePassword, 'image', 'images', setImageFile, setImageTitle, setImagePassword)} style={styles.vCard}>
                 <input style={styles.input} placeholder="Sunan Hoto" value={imageTitle} onChange={e => setImageTitle(e.target.value)} />
-                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="image/*" onChange={e => setImageFile(e.target.files)} />
+                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="image/*" onChange={e => setImageFile(e.target.files[0])} />
                 <input style={styles.input} type="password" placeholder="Upload Password" value={imagePassword} onChange={e => setImagePassword(e.target.value)} />
-                {imageUploading && (
+                {uploadState.isUploading && uploadState.activeSection === 'image' && (
                   <div>
-                    <div style={styles.progress}><div style={{ width: `${imageProgress}%`, backgroundColor: '#319795', height: '100%' }}></div></div>
-                    <p style={{ fontSize: '12px', textAlign: 'center' }}>Ana ɗorawa: {imageProgress}%</p>
+                    <div style={styles.progress}><div style={{ width: `${uploadState.progress}%`, backgroundColor: '#319795', height: '100%' }}></div></div>
+                    <p style={{ fontSize: '12px', textAlign: 'center' }}>Ana ɗorawa: {uploadState.progress}%</p>
                   </div>
                 )}
-                <button style={styles.button} type="submit" disabled={imageUploading}>{imageUploading ? 'Yana Tafiya...' : 'Ɗora Hoto ta Store'}</button>
+                <button style={styles.button} type="submit" disabled={uploadState.isUploading}>{uploadState.isUploading && uploadState.activeSection === 'image' ? 'Yana Tafiya...' : 'Ɗora Hoto ta Store'}</button>
               </form>
               {images.filter(img => img.title.toLowerCase().includes(searchQuery.toLowerCase())).map(img => (
                 <div key={img.id} style={styles.vCard}>
@@ -398,7 +393,7 @@ const handleTransactionSubmit = async (e) => {
                   <option value="">Zaɓi Aji</option>
                   {classes.map(c => <option key={c.id} value={c.id}>{c.className}</option>)}
                 </select>
-<input style={styles.input} placeholder="Sunan Ɗalibi" value={stdName} onChange={e => setStdName(e.target.value)} />
+                <input style={styles.input} placeholder="Sunan Ɗalibi" value={stdName} onChange={e => setStdName(e.target.value)} />
                 <input style={styles.input} placeholder="Shekaru" value={stdAge} onChange={e => setStdAge(e.target.value)} />
                 <input style={styles.input} type="date" value={stdDate} onChange={e => setStdDate(e.target.value)} />
                 <input style={styles.input} type="time" value={stdTime} onChange={e => setStdTime(e.target.value)} />
