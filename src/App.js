@@ -3,7 +3,6 @@ import { initializeApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
 import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "firebase/firestore";
 
-// Lambobin sirri na Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyCtP-mYH8kLnu_UdfPwfOY1zDguvvfzMFw",
   authDomain: "shafina-platform.firebaseapp.com",
@@ -17,7 +16,6 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Adsterra Ad Component
 const AdBanner = () => {
   const bannerRef = useRef(null);
   useEffect(() => {
@@ -51,7 +49,7 @@ function App() {
   const [currentScreen, setCurrentScreen] = useState('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // SEPARATED MEDIA STATES (AN RABA SU ANAN DON MAGANCE MATSALAR)
+  // AN RABA STATE NA UPLOAD ANAN DAKAN-DA-KAN
   const [videoFile, setVideoFile] = useState(null);
   const [videoTitle, setVideoTitle] = useState('');
   const [videoPassword, setVideoPassword] = useState('');
@@ -81,7 +79,6 @@ function App() {
   const [audios, setAudios] = useState([]);
   const [images, setImages] = useState([]);
 
-  // ATTENDANCE STATES
   const [classes, setClasses] = useState([]);
   const [newClassName, setNewClassName] = useState('');
   const [selectedClassId, setSelectedClassId] = useState('');
@@ -91,7 +88,7 @@ function App() {
   const [stdDate, setStdDate] = useState('');
   const [stdTime, setStdTime] = useState('');
   const [stdDesc, setStdDesc] = useState('');
-// SCHOOL MANAGEMENT STATES
+
   const [schoolClasses, setSchoolClasses] = useState([]);
   const [newSchoolClassName, setNewSchoolClassName] = useState('');
   const [selectedSchoolClassId, setSelectedSchoolClassId] = useState('');
@@ -103,7 +100,6 @@ function App() {
   const [schAmount, setSchAmount] = useState('');
   const [schDesc, setSchDesc] = useState('');
 
-  // EXPENSE TRACKER STATES
   const [transactions, setTransactions] = useState([]);
   const [transTitle, setTransTitle] = useState('');
   const [transAmount, setTransAmount] = useState('');
@@ -113,7 +109,6 @@ function App() {
 
   const UPLOAD_SECRET_PASSWORD = "shafina2026"; 
 
-  // Realtime Database Sync
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => { setUser(currentUser); });
 
@@ -132,7 +127,7 @@ function App() {
     const unsubClasses = onSnapshot(collection(db, "classes"), (snapshot) => {
       const cls = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setClasses(cls);
-      if(cls.length > 0 && !selectedClassId) setSelectedClassId(cls[0].id);
+      if(cls.length > 0 && !selectedClassId) setSelectedClassId(cls.id);
     });
 
     const unsubStudents = onSnapshot(collection(db, "students"), (snapshot) => setStudents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
@@ -140,9 +135,10 @@ function App() {
     const unsubSchClasses = onSnapshot(collection(db, "school_classes"), (snapshot) => {
       const sCls = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setSchoolClasses(sCls);
-      if(sCls.length > 0 && !selectedSchoolClassId) setSelectedSchoolClassId(sCls[0].id);
+      if(sCls.length > 0 && !selectedSchoolClassId) setSelectedSchoolClassId(sCls.id);
     });
-const unsubSchStudents = onSnapshot(collection(db, "school_students"), (snapshot) => setSchoolStudents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
+
+    const unsubSchStudents = onSnapshot(collection(db, "school_students"), (snapshot) => setSchoolStudents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
 
     const qTrans = query(collection(db, "transactions"), orderBy("date", "desc"));
     const unsubTrans = onSnapshot(qTrans, (snapshot) => setTransactions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
@@ -152,8 +148,7 @@ const unsubSchStudents = onSnapshot(collection(db, "school_students"), (snapshot
       unsubClasses(); unsubStudents(); unsubSchClasses(); unsubSchStudents(); unsubTrans();
     };
   }, [selectedClassId, selectedSchoolClassId]);
-
-  const handleAuth = async (e) => {
+const handleAuth = async (e) => {
     e.preventDefault();
     if (!email || !password) { alert("Don Allah cika duka akwatunan!"); return; }
     try {
@@ -162,7 +157,6 @@ const unsubSchStudents = onSnapshot(collection(db, "school_students"), (snapshot
     } catch (error) { alert("Kuskure ya faru: " + error.message); }
   };
 
-  // TSARIN UPLOAD MAI ADANA KOWANNE BAN-DA-BAN
   const handleStoreUpload = (e, file, title, pass, setProgress, setUploading, setFile, setTitle, setPass, collectionName) => {
     e.preventDefault();
     if (pass !== UPLOAD_SECRET_PASSWORD) { alert("Kuskure: Password na Upload ba daidai ba ne!"); return; }
@@ -206,7 +200,8 @@ const unsubSchStudents = onSnapshot(collection(db, "school_students"), (snapshot
         setUploading(false); setProgress(0);
       }
     });
-xhr.addEventListener('error', () => {
+
+    xhr.addEventListener('error', () => {
       alert("Upload Failed: Duba hadin intanet dinka!");
       setUploading(false); setProgress(0);
     });
@@ -228,8 +223,7 @@ xhr.addEventListener('error', () => {
     await addDoc(collection(db, "school_students"), { classId: selectedSchoolClassId, name: schName, age: schAge, date: schDate, term: schTerm, amount: parseFloat(schAmount)||0, description: schDesc });
     setSchName(''); setSchAge(''); setSchDate(''); setSchAmount(''); setSchDesc(''); alert("An adana bayanin kuɗin makaranta!");
   };
-
-  const handleTransactionSubmit = async (e) => {
+const handleTransactionSubmit = async (e) => {
     e.preventDefault();
     await addDoc(collection(db, "transactions"), { title: transTitle, amount: parseFloat(transAmount)||0, type: transType, date: transDate, description: transDesc });
     setTransTitle(''); setTransAmount(''); setTransDate(''); setTransDesc(''); alert("An ƙara bayanin kuɗi!");
@@ -293,12 +287,13 @@ xhr.addEventListener('error', () => {
               ))}
             </div>
           )}
-{currentScreen === 'video' && (
+
+          {currentScreen === 'video' && (
             <div style={{ width: '90%', maxWidth: '468px' }}>
               <h3>▶️ Sashin Bidiyo (Videos Folder)</h3>
               <form onSubmit={(e) => handleStoreUpload(e, videoFile, videoTitle, videoPassword, setVideoProgress, setVideoUploading, setVideoFile, setVideoTitle, setVideoPassword, 'videos')} style={styles.vCard}>
                 <input style={styles.input} placeholder="Sunan Bidiyo" value={videoTitle} onChange={e => setVideoTitle(e.target.value)} />
-                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="video/*" onChange={e => setVideoFile(e.target.files[0])} />
+                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="video/*" onChange={e => setVideoFile(e.target.files)} />
                 <input style={styles.input} type="password" placeholder="Upload Password" value={videoPassword} onChange={e => setVideoPassword(e.target.value)} />
                 {videoUploading && (
                   <div>
@@ -322,7 +317,7 @@ xhr.addEventListener('error', () => {
               <h3>📄 Sashin Littattafai (PDFs Folder)</h3>
               <form onSubmit={(e) => handleStoreUpload(e, pdfFile, pdfTitle, pdfPassword, setPdfProgress, setPdfUploading, setPdfFile, setPdfTitle, setPdfPassword, 'pdfs')} style={styles.vCard}>
                 <input style={styles.input} placeholder="Sunan Littafi" value={pdfTitle} onChange={e => setPdfTitle(e.target.value)} />
-                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="application/pdf" onChange={e => setPdfFile(e.target.files[0])} />
+                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="application/pdf" onChange={e => setPdfFile(e.target.files)} />
                 <input style={styles.input} type="password" placeholder="Upload Password" value={pdfPassword} onChange={e => setPdfPassword(e.target.value)} />
                 {pdfUploading && (
                   <div>
@@ -330,7 +325,7 @@ xhr.addEventListener('error', () => {
                     <p style={{ fontSize: '12px', textAlign: 'center' }}>Ana ɗorawa: {pdfProgress}%</p>
                   </div>
                 )}
-                <button style={styles.button} type="submit" disabled={pdfUploading}>{pdfUploading ? 'Yana Tafiya...' : 'Ɗora PDF ta Store'}</button>
+<button style={styles.button} type="submit" disabled={pdfUploading}>{pdfUploading ? 'Yana Tafiya...' : 'Ɗora PDF ta Store'}</button>
               </form>
               {pdfs.filter(p => p.title.toLowerCase().includes(searchQuery.toLowerCase())).map(p => (
                 <div key={p.id} style={styles.vCard}>
@@ -340,12 +335,13 @@ xhr.addEventListener('error', () => {
               ))}
             </div>
           )}
-{currentScreen === 'audio' && (
+
+          {currentScreen === 'audio' && (
             <div style={{ width: '90%', maxWidth: '468px' }}>
               <h3>🎵 Sashin Sauti (Audios Folder)</h3>
               <form onSubmit={(e) => handleStoreUpload(e, audioFile, audioTitle, audioPassword, setAudioProgress, setAudioUploading, setAudioFile, setAudioTitle, setAudioPassword, 'audios')} style={styles.vCard}>
                 <input style={styles.input} placeholder="Sunan Sauti" value={audioTitle} onChange={e => setAudioTitle(e.target.value)} />
-                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="audio/*" onChange={e => setAudioFile(e.target.files[0])} />
+                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="audio/*" onChange={e => setAudioFile(e.target.files)} />
                 <input style={styles.input} type="password" placeholder="Upload Password" value={audioPassword} onChange={e => setAudioPassword(e.target.value)} />
                 {audioUploading && (
                   <div>
@@ -369,7 +365,7 @@ xhr.addEventListener('error', () => {
               <h3>🖼️ Sashin Hoto (Images Folder)</h3>
               <form onSubmit={(e) => handleStoreUpload(e, imageFile, imageTitle, imagePassword, setImageProgress, setImageUploading, setImageFile, setImageTitle, setImagePassword, 'images')} style={styles.vCard}>
                 <input style={styles.input} placeholder="Sunan Hoto" value={imageTitle} onChange={e => setImageTitle(e.target.value)} />
-                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="image/*" onChange={e => setImageFile(e.target.files[0])} />
+                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="image/*" onChange={e => setImageFile(e.target.files)} />
                 <input style={styles.input} type="password" placeholder="Upload Password" value={imagePassword} onChange={e => setImagePassword(e.target.value)} />
                 {imageUploading && (
                   <div>
@@ -402,7 +398,7 @@ xhr.addEventListener('error', () => {
                   <option value="">Zaɓi Aji</option>
                   {classes.map(c => <option key={c.id} value={c.id}>{c.className}</option>)}
                 </select>
-                <input style={styles.input} placeholder="Sunan Ɗalibi" value={stdName} onChange={e => setStdName(e.target.value)} />
+<input style={styles.input} placeholder="Sunan Ɗalibi" value={stdName} onChange={e => setStdName(e.target.value)} />
                 <input style={styles.input} placeholder="Shekaru" value={stdAge} onChange={e => setStdAge(e.target.value)} />
                 <input style={styles.input} type="date" value={stdDate} onChange={e => setStdDate(e.target.value)} />
                 <input style={styles.input} type="time" value={stdTime} onChange={e => setStdTime(e.target.value)} />
