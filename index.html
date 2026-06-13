@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ha">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shafina Platform</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCtP-mYH8kLnu_UdfPwfOY1zDguvvfzMFw",
+            authDomain: "shafina-platform.firebaseapp.com",
+            projectId: "shafina-platform",
+            storageBucket: "shafina-platform.appspot.com",
+            messagingSenderId: "532233463263",
+            appId: "1:532233463263:web:cd7a81ede2b7a0e3d1d06a"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Kula da Shiga da Fita
+        window.handleAuth = async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const pass = document.getElementById('password').value;
+            const isLogin = document.getElementById('auth-title').innerText === 'Shiga (Login)';
+            try {
+                if (isLogin) { await signInWithEmailAndPassword(auth, email, pass); alert("Ka shiga cikin nasara!"); }
+                else { await createUserWithEmailAndPassword(auth, email, pass); alert("An ƙirƙiri asusu!"); }
+            } catch (err) { alert("Kuskure: " + err.message); }
+        };
+
+        window.logout = () => { signOut(auth); switchScreen('dashboard'); };
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.getElementById('auth-section').classList.add('hidden');
+                document.getElementById('main-section').classList.remove('hidden');
+                document.getElementById('user-email').innerText = "📧 " + user.email;
+                loadData();
+            } else {
+                document.getElementById('auth-section').classList.remove('hidden');
+                document.getElementById('main-section').classList.add('hidden');
+            }
+        });
+
+        // TSARIN LODA FAYIL TA CLOUDINARY (Naka na gaske)
+        window.handleUpload = (e, section, collectionName, fileId, titleId, passId) => {
+            e.preventDefault();
+            const file = document.getElementById(fileId).files;
+            const title = document.getElementById(titleId).value;
+            const pass = document.getElementById(passId).value;
+
+            if (pass !== "shafina2026") { alert("Kuskure: Password ba daidai ba ne!"); return; }
+            if (!file || !title) { alert("Don Allah zaɓi fayil da suna!"); return; }
+
+            const progressContainer = document.getElementById(`${section}-progress-container`);
+            const progressBar = document.getElementById(`${section}-progress-bar`);
+            const progressText = document.getElementById(`${section}-progress-text`);
+
+            progressContainer.classList.remove('hidden');
+
+            const xhr = new XMLHttpRequest();
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("upload_preset", "shafina_preset");
+
+            xhr.upload.addEventListener('progress', (e) => {
+                if (e.lengthComputable) {
+                    const percent = Math.round((e.loaded / e.total) * 100);
+                    progressBar.style.width = percent + '%';
+                    progressText.innerText = `Ana ɗorawa: ${percent}%`;
+                }
+            });
+
+            xhr.addEventListener('load', async () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    const data = JSON.parse(xhr.responseText);
+                    await addDoc(collection(db, collectionName), { title: title, url: data.secure_url, createdAt: new Date() });
+                    alert("An adana fayil cikin nasara!");
+                    progressContainer.classList.add('hidden');
+                    document.getElementById(titleId).value = '';
+                    document.getElementById(passId).value = '';
+                } else { alert("Kuskure wajen loda fayil zuwa Cloudinary."); progressContainer.classList.add('hidden'); }
+            });
+
+            xhr.open('POST', 'https://api.cloudinary.com/v1_1/2d8acfc4-63bc-4dfd-abec-0af027536891/auto/upload', true);
+            xhr.send(formData);
+        };
+
+        // Sauran Ayyukan Firestore (Attendance, School, Expense)
+        window.addAttendance = async (e) => {
+            e.preventDefault();
+            await addDoc(collection(db, "students"), {
+                classId: document.getElementById('att-class').value,
+                name: document.getElementById('std-name').value,
+                age: document.getElementById('std-age').value,
+                date: document.getElementById('std-date').value,
+                time: document.getElementById('std-time').value,
+                description: document.getElementById('std-desc').value,
+                status: 'Present'
+            });
+            alert("An adana halartar ɗalibi!");
+        };
+
+        // Kula da canjin sassa (Screens)
+        window.switchScreen = (screenName) => {
+            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+            document.getElementById(`${screenName}-screen`).classList.remove('hidden');
+            const backBtn = document.getElementById('back-btn');
+            if (screenName === 'dashboard') backBtn.classList.add('hidden');
+            else backBtn.classList.remove('hidden');
+        };
+
+        function loadData() {
+            // Loading data logic directly mapped to UI containers via onSnapshot
+            onSnapshot(query(collection(db, "videos"), orderBy("createdAt", "desc")), (snap) => {
+                const container = document.getElementById('video-list');
+                container.innerHTML = snap.docs.map(doc => `<div class="bg-gray-700 p-4 rounded mb-2"><h4>${doc.data().title}</h4><video src="${doc.data().url}" controls class="w-full rounded mt-2"></video></div>`).join('');
+            });
+            onSnapshot(query(collection(db, "images"), orderBy("createdAt", "desc")), (snap) => {
+                const container = document.getElementById('image-list');
+                container.innerHTML = snap.docs.map(doc => `<div class="bg-gray-700 p-4 rounded mb-2"><h4>${doc.data().title}</h4><img src="${doc.data().url}" class="w-full rounded mt-2"/></div>`).join('');
+            });
+            onSnapshot(query(collection(db, "pdfs"), orderBy("createdAt", "desc")), (snap) => {
+                const container = document.getElementById('pdf-list');
+                container.innerHTML = snap.docs.map(doc => `<div class="bg-gray-700 p-4 rounded mb-2"><h4>${doc.data().title}</h4><a href="${doc.data().url}" target="_blank" class="text-teal-400 font-bold block mt-2">Buɗe Littafi ↗️</a></div>`).join('');
+            });
+            onSnapshot(query(collection(db, "audios"), orderBy("createdAt", "desc")), (snap) => {
+                const container = document.getElementById('audio-list');
+                container.innerHTML = snap.docs.map(doc => `<div class="bg-gray-700 p-4 rounded mb-2"><h4>${doc.data().title}</h4><audio src="${doc.data().url}" controls class="w-full mt-2"></audio></div>`).join('');
+            });
+        }
+    </script>
+</head>
+<body class="bg-gray-900 text-white font-sans min-h-screen flex flex-col items-center p-4">
+
+    <div class="text-2xl font-bold my-4 text-center">Shafina Platform</div>
+
+    <div class="w-full max-w-[468px] h-[60px] bg-gray-100 my-2 flex justify-center items-center overflow-hidden text-black text-xs rounded">
+        <script type="text/javascript">
+            atOptions = { 'key' : '34ff23d0cccf8ab433c8f1526824df48', 'format' : 'iframe', 'height' : 60, 'width' : 468, 'params' : {} };
+        </script>
+        <script type="text/javascript" src="https://www.highperformanceformat.com/34ff23d0cccf8ab433c8f1526824df48/invoke.js"></script>
+    </div>
+
+    <div id="auth-section" class="bg-gray-800 p-6 rounded-lg w-full max-w-md text-center my-4">
+        <h2 id="auth-title" class="text-xl font-bold mb-4">Shiga (Login)</h2>
+        <form onsubmit="handleAuth(event)">
+            <input id="email" type="email" placeholder="Saka Email" class="w-full p-3 mb-3 rounded bg-gray-900 border border-gray-700 text-white" required>
+            <input id="password" type="password" placeholder="Saka Password" class="w-full p-3 mb-3 rounded bg-gray-900 border border-gray-700 text-white" required>
+            <button type="submit" class="w-full p-3 bg-teal-600 font-bold rounded hover:bg-teal-500">Tura</button>
+        </form>
+        <p onclick="const t=document.getElementById('auth-title'); t.innerText=t.innerText==='Shiga (Login)'?'Ƙirƙiri Asusu':'Shiga (Login)'" class="text-teal-400 mt-4 cursor-pointer text-sm">Sauya Tsari (Login/Register)</p>
+    </div>
+
+    <div id="main-section" class="w-full max-w-md hidden">
+        <div class="flex justify-between items-center text-xs text-gray-400 mb-4 bg-gray-800 p-3 rounded">
+            <span id="user-email"></span>
+            <button id="back-btn" onclick="switchScreen('dashboard')" class="bg-gray-700 px-3 py-1 rounded hidden">⬅️ Menun Baya</button>
+        </div>
+
+        <div id="dashboard-screen" class="screen grid grid-cols-2 gap-4">
+            <button onclick="switchScreen('video')" class="p-6 bg-gray-800 rounded-lg flex flex-col items-center gap-2 border border-gray-700"><span>▶️</span><b>Video</b></button>
+            <button onclick="switchScreen('pdf')" class="p-6 bg-gray-800 rounded-lg flex flex-col items-center gap-2 border border-gray-700"><span>📄</span><b>PDF</b></button>
+            <button onclick="switchScreen('image')" class="p-6 bg-gray-800 rounded-lg flex flex-col items-center gap-2 border border-gray-700"><span>🖼️</span><b>Image</b></button>
+            <button onclick="switchScreen('audio')" class="p-6 bg-gray-800 rounded-lg flex flex-col items-center gap-2 border border-gray-700"><span>🎵</span><b>Audio</b></button>
+            <button onclick="switchScreen('attendance')" class="p-6 bg-gray-800 rounded-lg flex flex-col items-center gap-2 border border-gray-700"><span>📅</span><b>Attendance</b></button>
+            <button onclick="logout()" class="p-6 bg-red-900/50 rounded-lg flex flex-col items-center gap-2 border border-red-700 text-red-200"><span>🚪</span><b>Fita (Logout)</b></button>
+        </div>
+
+        <div id="video-screen" class="screen hidden bg-gray-800 p-4 rounded-lg">
+            <h3 class="text-lg font-bold mb-3">▶️ Sashi na Bidiyo</h3>
+            <form onsubmit="handleUpload(event, 'video', 'videos', 'vid-file', 'vid-title', 'vid-pass')" class="space-y-3">
+                <input id="vid-title" placeholder="Sunan Bidiyo" class="w-full p-2 rounded bg-gray-900 border border-gray-700">
+                <input id="vid-file" type="file" accept="video/*" class="w-full text-sm text-gray-400">
+                <input id="vid-pass" type="password" placeholder="Upload Password" class="w-full p-2 rounded bg-gray-900 border border-gray-700">
+                <div id="video-progress-container" class="w-full bg-gray-700 h-3 rounded hidden overflow-hidden"><div id="video-progress-bar" class="bg-teal-500 h-full w-0"></div><p id="video-progress-text" class="text-[10px] text-center mt-1"></p></div>
+                <button type="submit" class="w-full p-2 bg-teal-600 rounded font-bold">Loda Bidiyo ta Store</button>
+            </form>
+            <div id="video-list" class="mt-4"></div>
+        </div>
+
+        <div id="image-screen" class="screen hidden bg-gray-800 p-4 rounded-lg">
+            <h3 class="text-lg font-bold mb-3">🖼️ Sashi na Hoto</h3>
+            <form onsubmit="handleUpload(event, 'image', 'images', 'img-file', 'img-title', 'img-pass')" class="space-y-3">
+                <input id="img-title" placeholder="Sunan Hoto" class="w-full p-2 rounded bg-gray-900 border border-gray-700">
+                <input id="img-file" type="file" accept="image/*" class="w-full text-sm text-gray-400">
+                <input id="img-pass" type="password" placeholder="Upload Password" class="w-full p-2 rounded bg-gray-900 border border-gray-700">
+                <div id="image-progress-container" class="w-full bg-gray-700 h-3 rounded hidden overflow-hidden"><div id="image-progress-bar" class="bg-teal-500 h-full w-0"></div><p id="image-progress-text" class="text-[10px] text-center mt-1"></p></div>
+                <button type="submit" class="w-full p-2 bg-teal-600 rounded font-bold">Loda Hoto ta Store</button>
+            </form>
+            <div id="image-list" class="mt-4"></div>
+        </div>
+
+        <div id="pdf-screen" class="screen hidden bg-gray-800 p-4 rounded-lg">
+            <h3 class="text-lg font-bold mb-3">📄 Sashi na Littattafai (PDF)</h3>
+            <form onsubmit="handleUpload(event, 'pdf', 'pdfs', 'pdf-file', 'pdf-title', 'pdf-pass')" class="space-y-3">
+                <input id="pdf-title" placeholder="Sunan Littafi" class="w-full p-2 rounded bg-gray-900 border border-gray-700">
+                <input id="pdf-file" type="file" accept="application/pdf" class="w-full text-sm text-gray-400">
+                <input id="pdf-pass" type="password" placeholder="Upload Password" class="w-full p-2 rounded bg-gray-900 border border-gray-700">
+                <div id="pdf-progress-container" class="w-full bg-gray-700 h-3 rounded hidden overflow-hidden"><div id="pdf-progress-bar" class="bg-teal-500 h-full w-0"></div><p id="pdf-progress-text" class="text-[10px] text-center mt-1"></p></div>
+                <button type="submit" class="w-full p-2 bg-teal-600 rounded font-bold">Loda PDF ta Store</button>
+            </form>
+            <div id="pdf-list" class="mt-4"></div>
+        </div>
+
+        <div id="audio-screen" class="screen hidden bg-gray-800 p-4 rounded-lg">
+            <h3 class="text-lg font-bold mb-3">🎵 Sashi na Sauti (Audio)</h3>
+            <form onsubmit="handleUpload(event, 'audio', 'audios', 'aud-file', 'aud-title', 'aud-pass')" class="space-y-3">
+                <input id="aud-title" placeholder="Sunan Sauti" class="w-full p-2 rounded bg-gray-900 border border-gray-700">
+                <input id="aud-file" type="file" accept="audio/*" class="w-full text-sm text-gray-400">
+                <input id="aud-pass" type="password" placeholder="Upload Password" class="w-full p-2 rounded bg-gray-900 border border-gray-700">
+                <div id="audio-progress-container" class="w-full bg-gray-700 h-3 rounded hidden overflow-hidden"><div id="audio-progress-bar" class="bg-teal-500 h-full w-0"></div><p id="audio-progress-text" class="text-[10px] text-center mt-1"></p></div>
+                <button type="submit" class="w-full p-2 bg-teal-600 rounded font-bold">Loda Sauti ta Store</button>
+            </form>
+            <div id="audio-list" class="mt-4"></div>
+        </div>
+
+        <div id="attendance-screen" class="screen hidden bg-gray-800 p-4 rounded-lg">
+            <h3 class="text-lg font-bold mb-3">📅 Tsarin Halartar Dalibai</h3>
+            <form onsubmit="addAttendance(event)" class="space-y-3">
+                <input id="att-class" placeholder="Aji (Misali: Primary 1)" class="w-full p-2 rounded bg-gray-900 border border-gray-700">
+                <input id="std-name" placeholder="Sunan Ɗalibi" class="w-full p-2 rounded bg-gray-900 border border-gray-700">
+                <input id="std-age" placeholder="Shekaru" class="w-full p-2 rounded bg-gray-900 border border-gray-700">
+                <input id="std-date" type="date" class="w-full p-2 rounded bg-gray-900 border border-gray-700">
+                <input id="std-time" type="time" class="w-full p-2 rounded bg-gray-900 border border-gray-700">
+                <textarea id="std-desc" placeholder="Karin bayani..." class="w-full p-2 rounded bg-gray-900 border border-gray-700"></textarea>
+                <button type="submit" class="w-full p-2 bg-teal-600 font-bold rounded">Adana Halarta</button>
+            </form>
+        </div>
+
+    </div>
+</body>
+</html>
+
