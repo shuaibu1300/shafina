@@ -68,7 +68,7 @@
             const xhr = new XMLHttpRequest();
             const formData = new FormData();
             formData.append("file", file);
-            formData.append("upload_preset", "shafina_preset");
+            formData.append("upload_preset", "shafina_preset"); formData.append("resource_type", "auto");
 
             xhr.upload.addEventListener('progress', (e) => {
                 if (e.lengthComputable) {
