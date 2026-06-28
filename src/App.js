@@ -170,8 +170,7 @@ const css = `
     margin-bottom: 16px;
     padding-left: 30px;
   }
-
-  .progress-bar-bg {
+.progress-bar-bg {
     background: ${C.border};
     border-radius: 6px;
     height: 8px;
@@ -184,7 +183,8 @@ const css = `
     border-radius: 6px;
     transition: width 0.3s ease;
   }
-.media-card {
+
+  .media-card {
     background: ${C.card};
     border: 1px solid ${C.border};
     border-radius: 12px;
@@ -437,7 +437,7 @@ function App() {
   const [stdTime, setStdTime] = useState('');
   const [stdDesc, setStdDesc] = useState('');
 
-  const [schoolClasses, setSchoolClasses] = useState([]);
+const [schoolClasses, setSchoolClasses] = useState([]);
   const [newSchoolClassName, setNewSchoolClassName] = useState('');
   const [selectedSchoolClassId, setSelectedSchoolClassId] = useState('');
   const [schoolStudents, setSchoolStudents] = useState([]);
@@ -477,7 +477,8 @@ function App() {
 
     return () => [u1,u2,u3,u4,u5,u6,u7,u8,u9,unsubAuth].forEach(u => u());
   }, []);
-const handleAuth = async (e) => {
+
+  const handleAuth = async (e) => {
     e.preventDefault();
     if (!email || !password) { alert("Don Allah cika duka akwatunan!"); return; }
     try {
@@ -563,6 +564,7 @@ const handleAuth = async (e) => {
     setSchName(''); setSchAge(''); setSchDate(''); setSchAmount(''); setSchDesc('');
     alert("An adana bayanin kuɗin makaranta!");
   };
+
 const handleTransactionSubmit = async (e) => {
     e.preventDefault();
     if (!transTitle || !transAmount) return alert("Cika abin da aka yi da adadin kuɗi!");
@@ -665,7 +667,7 @@ const handleTransactionSubmit = async (e) => {
               </div>
             )}
 
-{/* ════════════════════════════════════════════════
+            {/* ════════════════════════════════════════════════
                 VIDEO
             ════════════════════════════════════════════════ */}
             {currentScreen === 'video' && (
@@ -729,7 +731,7 @@ const handleTransactionSubmit = async (e) => {
                   accept="audio/*" placeholder="Sunan Sauti"
                   uploadState={uploadState} onUpload={handleStoreUpload}
                 />
-                <div className="divider" />
+<div className="divider" />
                 {filterBySearch(audios).map(a => (
                   <div key={a.id} className="media-card">
                     <h4>🎵 {a.title}</h4>
@@ -740,7 +742,7 @@ const handleTransactionSubmit = async (e) => {
               </div>
             )}
 
-{/* ════════════════════════════════════════════════
+            {/* ════════════════════════════════════════════════
                 IMAGE
             ════════════════════════════════════════════════ */}
             {currentScreen === 'image' && (
@@ -809,7 +811,7 @@ const handleTransactionSubmit = async (e) => {
               </div>
             )}
 
-{/* ════════════════════════════════════════════════
+            {/* ════════════════════════════════════════════════
                 SCHOOL MANAGEMENT
             ════════════════════════════════════════════════ */}
             {currentScreen === 'school management' && (
@@ -843,8 +845,7 @@ const handleTransactionSubmit = async (e) => {
                   <input className="field" placeholder="Karin bayani" value={schDesc} onChange={e => setSchDesc(e.target.value)} />
                   <button className="btn-primary" type="submit" style={{ marginTop: '8px' }}>Adana Biyan Kuɗi</button>
                 </form>
-
-                <div className="divider" />
+ <div className="divider" />
                 {schoolStudents
                   .filter(ss => ss.classId === selectedSchoolClassId && (ss.name || '').toLowerCase().includes(searchQuery.toLowerCase()))
                   .map(ss => (
