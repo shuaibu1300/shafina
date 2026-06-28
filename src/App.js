@@ -148,7 +148,7 @@ const css = `
   }
   .field::placeholder { color: ${C.textMuted}; }
 
-.card {
+  .card {
     background: ${C.card};
     border: 1px solid ${C.border};
     border-radius: 14px;
@@ -184,8 +184,7 @@ const css = `
     border-radius: 6px;
     transition: width 0.3s ease;
   }
-
-  .media-card {
+.media-card {
     background: ${C.card};
     border: 1px solid ${C.border};
     border-radius: 12px;
@@ -246,7 +245,6 @@ const css = `
     position: relative;
     margin-bottom: 14px;
   }
-
   .search-icon {
     position: absolute;
     left: 12px;
@@ -322,7 +320,7 @@ const AdBanner = () => {
       ref.current.appendChild(script);
     }
   }, []);
-  return (
+return (
     <div ref={ref} style={{
       width: '100%', maxWidth: '468px', height: '60px',
       background: C.surface, border: `1px solid ${C.border}`,
@@ -401,7 +399,7 @@ const UploadSection = ({ sectionKey, collectionName, accept, placeholder, upload
         </div>
       )}
 
-<button
+      <button
         className="btn-primary"
         type="submit"
         disabled={uploadState.isUploading}
@@ -479,8 +477,7 @@ function App() {
 
     return () => [u1,u2,u3,u4,u5,u6,u7,u8,u9,unsubAuth].forEach(u => u());
   }, []);
-
-  const handleAuth = async (e) => {
+const handleAuth = async (e) => {
     e.preventDefault();
     if (!email || !password) { alert("Don Allah cika duka akwatunan!"); return; }
     try {
@@ -494,7 +491,7 @@ function App() {
     } catch (err) { alert("Kuskure: " + err.message); }
   };
 
- // ── FIXED UPLOAD: uses file directly (not FileList) ─────────────
+  // ── FIXED UPLOAD: uses file directly (not FileList) ─────────────
   const handleStoreUpload = (e, file, title, pass, sectionName, collectionName, resetFile, resetTitle, resetPass) => {
     e.preventDefault();
     if (pass !== UPLOAD_SECRET_PASSWORD) { alert("Kuskure: Upload Password ba daidai ba ne!"); return; }
@@ -566,8 +563,7 @@ function App() {
     setSchName(''); setSchAge(''); setSchDate(''); setSchAmount(''); setSchDesc('');
     alert("An adana bayanin kuɗin makaranta!");
   };
-
-  const handleTransactionSubmit = async (e) => {
+const handleTransactionSubmit = async (e) => {
     e.preventDefault();
     if (!transTitle || !transAmount) return alert("Cika abin da aka yi da adadin kuɗi!");
     await addDoc(collection(db, "transactions"), {
@@ -601,7 +597,7 @@ function App() {
 
         <AdBanner />
 
-{/* ── AUTH ── */}
+        {/* ── AUTH ── */}
         {!user ? (
           <div className="card" style={{ width: '90%', maxWidth: '468px', marginTop: '20px' }}>
             <h2 style={{ marginBottom: '18px', fontSize: '18px', fontWeight: '700', color: C.textPrimary }}>
@@ -668,7 +664,8 @@ function App() {
                 }
               </div>
             )}
- {/* ════════════════════════════════════════════════
+
+{/* ════════════════════════════════════════════════
                 VIDEO
             ════════════════════════════════════════════════ */}
             {currentScreen === 'video' && (
@@ -743,7 +740,7 @@ function App() {
               </div>
             )}
 
-            {/* ════════════════════════════════════════════════
+{/* ════════════════════════════════════════════════
                 IMAGE
             ════════════════════════════════════════════════ */}
             {currentScreen === 'image' && (
@@ -765,7 +762,8 @@ function App() {
                 {images.length === 0 && <p style={{ color: C.textMuted, fontSize: '13px', textAlign: 'center', padding: '20px 0' }}>Babu hoto da aka ɗora tukuna.</p>}
               </div>
             )}
-{/* ════════════════════════════════════════════════
+
+            {/* ════════════════════════════════════════════════
                 ATTENDANCE
             ════════════════════════════════════════════════ */}
             {currentScreen === 'attendance' && (
@@ -811,7 +809,7 @@ function App() {
               </div>
             )}
 
-            {/* ════════════════════════════════════════════════
+{/* ════════════════════════════════════════════════
                 SCHOOL MANAGEMENT
             ════════════════════════════════════════════════ */}
             {currentScreen === 'school management' && (
@@ -899,7 +897,7 @@ function App() {
                   <button className="btn-primary" type="submit" style={{ marginTop: '8px' }}>Ajiye Bayani</button>
                 </form>
 
- <div className="divider" />
+                <div className="divider" />
                 {filterBySearch(transactions).map(t => (
                   <div key={t.id} className="media-card" style={{ borderLeft: `3px solid ${t.type === 'income' ? C.green : C.red}` }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
