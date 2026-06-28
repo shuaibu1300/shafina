@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { initializeApp } from "firebase/app";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "firebase/auth";
 import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -16,31 +16,404 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// ─── DESIGN TOKENS ───────────────────────────────────────────────
+const C = {
+  bg:       '#0f1117',
+  surface:  '#181c27',
+  card:     '#1e2333',
+  border:   '#2a3047',
+  accent:   '#3b82f6',
+  accentDim:'#1d4ed8',
+  teal:     '#14b8a6',
+  green:    '#22c55e',
+  red:      '#ef4444',
+  amber:    '#f59e0b',
+  textPrimary:   '#f1f5f9',
+  textSecondary: '#94a3b8',
+  textMuted:     '#475569',
+};
+
+const css = `
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: ${C.bg}; color: ${C.textPrimary}; font-family: 'Inter', sans-serif; }
+  input, select, textarea { outline: none; }
+  input:focus, select:focus { border-color: ${C.accent} !important; box-shadow: 0 0 0 2px ${C.accent}22; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: ${C.bg}; }
+  ::-webkit-scrollbar-thumb { background: ${C.border}; border-radius: 2px; }
+
+  .logo-text {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    background: linear-gradient(135deg, ${C.accent} 0%, ${C.teal} 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
+  }
+  .logo-sub {
+    font-size: 10px;
+    color: ${C.textMuted};
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .grid-btn {
+    background: ${C.card};
+    border: 1px solid ${C.border};
+    border-radius: 14px;
+    padding: 20px 12px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.2s ease;
+    color: ${C.textPrimary};
+  }
+  .grid-btn:hover {
+    border-color: ${C.accent};
+    background: ${C.surface};
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px ${C.accent}22;
+  }
+  .grid-btn .icon-wrap {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+  }
+  .grid-btn span.label {
+    font-size: 13px;
+    font-weight: 600;
+    color: ${C.textPrimary};
+  }
+
+  .btn-primary {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(135deg, ${C.accent}, ${C.accentDim});
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    transition: opacity 0.2s;
+    letter-spacing: 0.3px;
+  }
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-danger {
+    padding: 9px 20px;
+    background: transparent;
+    color: ${C.red};
+    border: 1px solid ${C.red}44;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    transition: all 0.2s;
+  }
+  .btn-danger:hover { background: ${C.red}11; }
+
+  .btn-back {
+    padding: 7px 14px;
+    background: ${C.surface};
+    color: ${C.textSecondary};
+    border: 1px solid ${C.border};
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .btn-back:hover { border-color: ${C.accent}; color: ${C.textPrimary}; }
+
+  .field {
+    width: 100%;
+    padding: 11px 14px;
+    margin: 6px 0;
+    border-radius: 8px;
+    border: 1px solid ${C.border};
+    background: ${C.bg};
+    color: ${C.textPrimary};
+    font-size: 14px;
+    transition: border-color 0.2s;
+  }
+  .field::placeholder { color: ${C.textMuted}; }
+
+.card {
+    background: ${C.card};
+    border: 1px solid ${C.border};
+    border-radius: 14px;
+    padding: 18px;
+    margin: 10px 0;
+  }
+
+  .section-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: ${C.textPrimary};
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 4px;
+  }
+  .section-sub {
+    font-size: 12px;
+    color: ${C.textMuted};
+    margin-bottom: 16px;
+    padding-left: 30px;
+  }
+
+  .progress-bar-bg {
+    background: ${C.border};
+    border-radius: 6px;
+    height: 8px;
+    overflow: hidden;
+    margin: 10px 0 4px;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, ${C.teal}, ${C.accent});
+    border-radius: 6px;
+    transition: width 0.3s ease;
+  }
+
+  .media-card {
+    background: ${C.card};
+    border: 1px solid ${C.border};
+    border-radius: 12px;
+    padding: 14px;
+    margin: 8px 0;
+  }
+  .media-card h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: ${C.textPrimary};
+    margin-bottom: 10px;
+  }
+
+  .tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .stat-card {
+    background: ${C.card};
+    border: 1px solid ${C.border};
+    border-radius: 12px;
+    padding: 14px;
+    text-align: center;
+  }
+
+  .topbar {
+    width: 90%;
+    max-width: 468px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    margin-bottom: 4px;
+  }
+  .user-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: ${C.surface};
+    border: 1px solid ${C.border};
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 11px;
+    color: ${C.textSecondary};
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .search-wrap {
+    width: 90%;
+    max-width: 468px;
+    position: relative;
+    margin-bottom: 14px;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: ${C.textMuted};
+    font-size: 14px;
+  }
+  .search-input {
+    width: 100%;
+    padding: 11px 14px 11px 36px;
+    border-radius: 10px;
+    border: 1px solid ${C.border};
+    background: ${C.surface};
+    color: ${C.textPrimary};
+    font-size: 14px;
+  }
+  .search-input::placeholder { color: ${C.textMuted}; }
+  .search-input:focus { border-color: ${C.accent}; outline: none; }
+
+  .divider { height: 1px; background: ${C.border}; margin: 14px 0; }
+
+  .upload-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: ${C.teal};
+    font-weight: 500;
+    margin: 4px 0 2px;
+  }
+
+  .file-input-wrap {
+    border: 1px dashed ${C.border};
+    border-radius: 8px;
+    padding: 14px;
+    text-align: center;
+    margin: 6px 0;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .file-input-wrap:hover { border-color: ${C.accent}; }
+  .file-input-wrap input { display: none; }
+  .file-input-label {
+    font-size: 13px;
+    color: ${C.textSecondary};
+    cursor: pointer;
+    display: block;
+  }
+  .file-chosen {
+    font-size: 12px;
+    color: ${C.teal};
+    margin-top: 4px;
+    word-break: break-all;
+  }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+  .pulse { animation: pulse 1.5s infinite; }
+`;
+
+// ─── AD BANNER ────────────────────────────────────────────────────
 const AdBanner = () => {
-  const bannerRef = useRef(null);
+  const ref = useRef(null);
   useEffect(() => {
-    if (bannerRef.current && !bannerRef.current.firstChild) {
+    if (ref.current && !ref.current.firstChild) {
       const conf = document.createElement('script');
       conf.type = 'text/javascript';
-      conf.innerText = `
-        atOptions = {
-          'key' : '34ff23d0cccf8ab433c8f1526824df48',
-          'format' : 'iframe',
-          'height' : 60,
-          'width' : 468,
-          'params' : {}
-        };
-      `;
+      conf.innerText = `atOptions={'key':'34ff23d0cccf8ab433c8f1526824df48','format':'iframe','height':60,'width':468,'params':{}};`;
       const script = document.createElement('script');
       script.type = 'text/javascript';
       script.src = 'https://www.highperformanceformat.com/34ff23d0cccf8ab433c8f1526824df48/invoke.js';
-      bannerRef.current.appendChild(conf);
-      bannerRef.current.appendChild(script);
+      ref.current.appendChild(conf);
+      ref.current.appendChild(script);
     }
   }, []);
-  return <div style={{ width: '100%', maxWidth: '468px', height: '60px', backgroundColor: '#f0f0f0', margin: '10px auto', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }} ref={bannerRef}></div>;
+  return (
+    <div ref={ref} style={{
+      width: '100%', maxWidth: '468px', height: '60px',
+      background: C.surface, border: `1px solid ${C.border}`,
+      borderRadius: '8px', margin: '8px auto',
+      display: 'flex', justifyContent: 'center', alignItems: 'center',
+      overflow: 'hidden'
+    }} />
+  );
 };
 
+// ─── ICON COLORS PER SECTION ─────────────────────────────────────
+const sectionMeta = {
+  video:             { icon: '▶️', color: '#ef4444', bg: '#7f1d1d33', label: 'Video' },
+  pdf:               { icon: '📄', color: '#f59e0b', bg: '#78350f33', label: 'PDF' },
+  image:             { icon: '🖼️', color: '#8b5cf6', bg: '#4c1d9533', label: 'Image' },
+  audio:             { icon: '🎵', color: '#22c55e', bg: '#14532d33', label: 'Audio' },
+  attendance:        { icon: '📅', color: '#3b82f6', bg: '#1e3a5f33', label: 'Attendance' },
+  'school management':{ icon: '🏫', color: '#14b8a6', bg: '#0f3d3833', label: 'School Mgmt' },
+  expensive:         { icon: '💰', color: '#f59e0b', bg: '#78350f33', label: 'Expense Tracker' },
+};
+
+// ─── UPLOAD SECTION COMPONENT ────────────────────────────────────
+const UploadSection = ({ sectionKey, collectionName, accept, placeholder, uploadState, onUpload }) => {
+  const [file, setFile] = useState(null);
+  const [title, setTitle] = useState('');
+  const [pass, setPass] = useState('');
+  const meta = sectionMeta[sectionKey];
+  const isActive = uploadState.isUploading && uploadState.activeSection === sectionKey;
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onUpload(e, file, title, pass, sectionKey, collectionName,
+      () => setFile(null), () => setTitle(''), () => setPass(''));
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="card">
+      <input
+        className="field"
+        placeholder={placeholder}
+        value={title}
+        onChange={e => setTitle(e.target.value)}
+      />
+
+      {/* Custom file picker */}
+      <div className="file-input-wrap" onClick={() => document.getElementById(`file-${sectionKey}`).click()}>
+        <label className="file-input-label">
+          {file ? null : `📁 Danna don zaɓi fayil (${accept})`}
+          <input
+            id={`file-${sectionKey}`}
+            type="file"
+            accept={accept}
+            onChange={e => setFile(e.target.files[0])}
+          />
+        </label>
+        {file && <div className="file-chosen">✅ {file.name}</div>}
+      </div>
+
+      <input
+        className="field"
+        type="password"
+        placeholder="🔐 Upload Password"
+        value={pass}
+        onChange={e => setPass(e.target.value)}
+      />
+
+      {isActive && (
+        <div>
+          <div className="upload-status">
+            <span className="pulse">⬆️</span>
+            <span>Ana ɗorawa... {uploadState.progress}%</span>
+          </div>
+          <div className="progress-bar-bg">
+            <div className="progress-bar-fill" style={{ width: `${uploadState.progress}%` }} />
+          </div>
+        </div>
+      )}
+
+<button
+        className="btn-primary"
+        type="submit"
+        disabled={uploadState.isUploading}
+        style={{ marginTop: '8px' }}
+      >
+        {isActive ? 'Yana Tafiya...' : `⬆️ Ɗora ${meta.label}`}
+      </button>
+    </form>
+  );
+};
+
+// ─── MAIN APP ────────────────────────────────────────────────────
 function App() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
@@ -49,28 +422,7 @@ function App() {
   const [currentScreen, setCurrentScreen] = useState('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // TSARIN KULA DA UPLOAD MAFI TSARO (TANTANCE SASHEN DA KE AIKI)
-  const [uploadState, setUploadState] = useState({
-    activeSection: null, 
-    progress: 0,
-    isUploading: false
-  });
-
-  const [videoFile, setVideoFile] = useState(null);
-  const [videoTitle, setVideoTitle] = useState('');
-  const [videoPassword, setVideoPassword] = useState('');
-
-  const [pdfFile, setPdfFile] = useState(null);
-  const [pdfTitle, setPdfTitle] = useState('');
-  const [pdfPassword, setPdfPassword] = useState('');
-
-  const [audioFile, setAudioFile] = useState(null);
-  const [audioTitle, setAudioTitle] = useState('');
-  const [audioPassword, setAudioPassword] = useState('');
-
-  const [imageFile, setImageFile] = useState(null);
-  const [imageTitle, setImageTitle] = useState('');
-  const [imagePassword, setImagePassword] = useState('');
+  const [uploadState, setUploadState] = useState({ activeSection: null, progress: 0, isUploading: false });
 
   const [videos, setVideos] = useState([]);
   const [pdfs, setPdfs] = useState([]);
@@ -105,73 +457,60 @@ function App() {
   const [transDate, setTransDate] = useState('');
   const [transDesc, setTransDesc] = useState('');
 
-  const UPLOAD_SECRET_PASSWORD = "shafina2026"; 
+  const UPLOAD_SECRET_PASSWORD = "shafina2026";
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => { setUser(currentUser); });
+    const unsubAuth = onAuthStateChanged(auth, u => setUser(u));
 
-    const qVideos = query(collection(db, "videos"), orderBy("createdAt", "desc"));
-    const unsubVideos = onSnapshot(qVideos, (snapshot) => setVideos(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
-
-    const qPdfs = query(collection(db, "pdfs"), orderBy("createdAt", "desc"));
-    const unsubPdfs = onSnapshot(qPdfs, (snapshot) => setPdfs(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
-
-    const qAudios = query(collection(db, "audios"), orderBy("createdAt", "desc"));
-    const unsubAudios = onSnapshot(qAudios, (snapshot) => setAudios(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
-
-    const qImages = query(collection(db, "images"), orderBy("createdAt", "desc"));
-    const unsubImages = onSnapshot(qImages, (snapshot) => setImages(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
-
-    const unsubClasses = onSnapshot(collection(db, "classes"), (snapshot) => {
-      const cls = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setClasses(cls);
-      if(cls.length > 0 && !selectedClassId) setSelectedClassId(cls.id);
-    });
-
-    const unsubStudents = onSnapshot(collection(db, "students"), (snapshot) => setStudents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
-
-    const unsubSchClasses = onSnapshot(collection(db, "school_classes"), (snapshot) => {
-      const sCls = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setSchoolClasses(sCls);
-      if(sCls.length > 0 && !selectedSchoolClassId) setSelectedSchoolClassId(sCls.id);
-    });
-
-    const unsubSchStudents = onSnapshot(collection(db, "school_students"), (snapshot) => setSchoolStudents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
-
-    const qTrans = query(collection(db, "transactions"), orderBy("date", "desc"));
-    const unsubTrans = onSnapshot(qTrans, (snapshot) => setTransactions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
-
-    return () => {
-      unsubscribeAuth(); unsubVideos(); unsubPdfs(); unsubAudios(); unsubImages();
-      unsubClasses(); unsubStudents(); unsubSchClasses(); unsubSchStudents(); unsubTrans();
+    const snap = (col, setter, ord) => {
+      const q = ord ? query(collection(db, col), orderBy(ord, "desc")) : collection(db, col);
+      return onSnapshot(q, s => setter(s.docs.map(d => ({ id: d.id, ...d.data() }))));
     };
-  }, [selectedClassId, selectedSchoolClassId]);
+
+    const u1 = snap("videos", setVideos, "createdAt");
+    const u2 = snap("pdfs", setPdfs, "createdAt");
+    const u3 = snap("audios", setAudios, "createdAt");
+    const u4 = snap("images", setImages, "createdAt");
+    const u5 = snap("classes", setClasses, null);
+    const u6 = snap("students", setStudents, null);
+    const u7 = snap("school_classes", setSchoolClasses, null);
+    const u8 = snap("school_students", setSchoolStudents, null);
+    const u9 = snap("transactions", setTransactions, "date");
+
+    return () => [u1,u2,u3,u4,u5,u6,u7,u8,u9,unsubAuth].forEach(u => u());
+  }, []);
 
   const handleAuth = async (e) => {
     e.preventDefault();
     if (!email || !password) { alert("Don Allah cika duka akwatunan!"); return; }
     try {
-      if (isLogin) { await signInWithEmailAndPassword(auth, email, password); alert("Ka shiga cikin nasara!"); }
-      else { await createUserWithEmailAndPassword(auth, email, password); alert("An ƙirƙiri asusu cikin nasara!"); setIsLogin(true); }
-    } catch (error) { alert("Kuskure ya faru: " + error.message); }
+      if (isLogin) {
+        await signInWithEmailAndPassword(auth, email, password);
+      } else {
+        await createUserWithEmailAndPassword(auth, email, password);
+        alert("An ƙirƙiri asusu cikin nasara!");
+        setIsLogin(true);
+      }
+    } catch (err) { alert("Kuskure: " + err.message); }
   };
-const handleStoreUpload = (e, file, title, pass, sectionName, collectionName, setFile, setTitle, setPass) => {
+
+ // ── FIXED UPLOAD: uses file directly (not FileList) ─────────────
+  const handleStoreUpload = (e, file, title, pass, sectionName, collectionName, resetFile, resetTitle, resetPass) => {
     e.preventDefault();
-    if (pass !== UPLOAD_SECRET_PASSWORD) { alert("Kuskure: Password na Upload ba daidai ba ne!"); return; }
+    if (pass !== UPLOAD_SECRET_PASSWORD) { alert("Kuskure: Upload Password ba daidai ba ne!"); return; }
     if (!file || !title) { alert("Don Allah zaɓi fayil sannan ka saka suna!"); return; }
 
     setUploadState({ activeSection: sectionName, progress: 0, isUploading: true });
 
-    const xhr = new XMLHttpRequest();
     const formData = new FormData();
-    formData.append("file", file);
-    // AN SAKA SHAFINA_PRESET ANAN
-    formData.append("upload_preset", "shafina_preset"); 
+    formData.append("file", file); // ✅ single File object
+    formData.append("upload_preset", "shafina_preset");
 
-    xhr.upload.addEventListener('progress', (e) => {
-      if (e.lengthComputable) {
-        const percentComplete = Math.round((e.loaded / e.total) * 100);
-        setUploadState(prev => ({ ...prev, progress: percentComplete }));
+    const xhr = new XMLHttpRequest();
+
+    xhr.upload.addEventListener('progress', (ev) => {
+      if (ev.lengthComputable) {
+        setUploadState(prev => ({ ...prev, progress: Math.round((ev.loaded / ev.total) * 100) }));
       }
     });
 
@@ -179,322 +518,417 @@ const handleStoreUpload = (e, file, title, pass, sectionName, collectionName, se
       if (xhr.status >= 200 && xhr.status < 300) {
         try {
           const data = JSON.parse(xhr.responseText);
-          const downloadURL = data.secure_url;
-
           await addDoc(collection(db, collectionName), {
-            title: title,
-            url: downloadURL,
+            title,
+            url: data.secure_url,
             createdAt: new Date()
           });
-
           setUploadState({ activeSection: null, progress: 0, isUploading: false });
-          setFile(null); setTitle(''); setPass('');
-          alert("An adana fayil ɗinka cikin nasara!");
-        } catch (error) {
-          alert("Error: An samu matsala wajen karanta amsar server.");
+          resetFile(null); resetTitle(''); resetPass('');
+          alert("✅ An adana fayil ɗinka cikin nasara!");
+        } catch {
+          alert("Error: Matsala wajen karanta amsar server.");
           setUploadState({ activeSection: null, progress: 0, isUploading: false });
         }
       } else {
-        alert("Upload Error: Cloudinary server response failed");
+        alert("Upload Error: Server ya kasa amsa daidai.");
         setUploadState({ activeSection: null, progress: 0, isUploading: false });
       }
     });
 
     xhr.addEventListener('error', () => {
-      alert("Upload Failed: Duba hadin intanet dinka!");
+      alert("Upload Failed: Duba hadin intanet ɗinka!");
       setUploadState({ activeSection: null, progress: 0, isUploading: false });
     });
 
-    // AN CANZA ADIRESHIN CLOUDINARY ZUWA NAKA NA GASKE ANAN HANYAR PROJECT ID
     xhr.open('POST', 'https://api.cloudinary.com/v1_1/2d8acfc4-63bc-4dfd-abec-0af027536891/auto/upload', true);
     xhr.send(formData);
   };
 
   const handleStudentSubmit = async (e) => {
     e.preventDefault();
-    if(!selectedClassId || !stdName) return alert("Cika sunan ɗalibi da aji!");
-    await addDoc(collection(db, "students"), { classId: selectedClassId, name: stdName, age: stdAge, date: stdDate, time: stdTime, description: stdDesc, status: 'Present' });
-    setStdName(''); setStdAge(''); setStdDate(''); setStdTime(''); setStdDesc(''); alert("An ajiye halartar ɗalibi!");
+    if (!selectedClassId || !stdName) return alert("Cika sunan ɗalibi da aji!");
+    await addDoc(collection(db, "students"), {
+      classId: selectedClassId, name: stdName, age: stdAge,
+      date: stdDate, time: stdTime, description: stdDesc, status: 'Present'
+    });
+    setStdName(''); setStdAge(''); setStdDate(''); setStdTime(''); setStdDesc('');
+    alert("An ajiye halartar ɗalibi!");
   };
 
   const handleSchSubmit = async (e) => {
     e.preventDefault();
-    if(!selectedSchoolClassId || !schName) return alert("Cika sunan ɗalibi!");
-    await addDoc(collection(db, "school_students"), { classId: selectedSchoolClassId, name: schName, age: schAge, date: schDate, term: schTerm, amount: parseFloat(schAmount)||0, description: schDesc });
-    setSchName(''); setSchAge(''); setSchDate(''); setSchAmount(''); setSchDesc(''); alert("An adana bayanin kuɗin makaranta!");
+    if (!selectedSchoolClassId || !schName) return alert("Cika sunan ɗalibi!");
+    await addDoc(collection(db, "school_students"), {
+      classId: selectedSchoolClassId, name: schName, age: schAge,
+      date: schDate, term: schTerm, amount: parseFloat(schAmount) || 0, description: schDesc
+    });
+    setSchName(''); setSchAge(''); setSchDate(''); setSchAmount(''); setSchDesc('');
+    alert("An adana bayanin kuɗin makaranta!");
   };
 
   const handleTransactionSubmit = async (e) => {
     e.preventDefault();
-    await addDoc(collection(db, "transactions"), { title: transTitle, amount: parseFloat(transAmount)||0, type: transType, date: transDate, description: transDesc });
-    setTransTitle(''); setTransAmount(''); setTransDate(''); setTransDesc(''); alert("An ƙara bayanin kuɗi!");
+    if (!transTitle || !transAmount) return alert("Cika abin da aka yi da adadin kuɗi!");
+    await addDoc(collection(db, "transactions"), {
+      title: transTitle, amount: parseFloat(transAmount) || 0,
+      type: transType, date: transDate, description: transDesc
+    });
+    setTransTitle(''); setTransAmount(''); setTransDate(''); setTransDesc('');
+    alert("An ƙara bayanin kuɗi!");
   };
-const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-  const totalExpense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+
+  const totalIncome  = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const totalExpense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
   const totalBalance = totalIncome - totalExpense;
 
-  const dashboardItems = [
-    { name: 'Video', icon: '▶️' }, { name: 'PDF', icon: '📄' }, { name: 'Image', icon: '🖼️' },
-    { name: 'Audio', icon: '🎵' }, { name: 'Attendance', icon: '📅' }, { name: 'School Management', icon: '🏫' },
-    { name: 'Expensive', icon: '💰' }
-  ];
+  const nav = (screen) => { setCurrentScreen(screen); setSearchQuery(''); };
 
-  const styles = {
-    container: { backgroundColor: '#1a202c', color: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', fontFamily: 'sans-serif', padding: '10px' },
-    card: { backgroundColor: '#2d3748', padding: '20px', borderRadius: '8px', width: '90%', maxWidth: '468px', textAlign: 'center', margin: '15px auto' },
-    input: { width: '100%', padding: '12px', margin: '8px 0', borderRadius: '4px', border: '1px solid #4a5568', backgroundColor: '#1a202c', color: '#fff', boxSizing: 'border-box' },
-    searchBar: { width: '90%', maxWidth: '468px', padding: '12px', margin: '10px auto', borderRadius: '6px', border: '1px solid #4a5568', backgroundColor: '#2d3748', color: '#fff', display: 'block' },
-    button: { width: '100%', padding: '10px', backgroundColor: '#319795', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' },
-    grid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', width: '90%', maxWidth: '468px', marginTop: '10px' },
-    gridBtn: { padding: '20px 10px', backgroundColor: '#2d3748', border: '1px solid #4a5568', color: '#fff', borderRadius: '8px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' },
-    vCard: { backgroundColor: '#2d3748', borderRadius: '8px', padding: '15px', margin: '15px 0', width: '100%', boxSizing: 'box', textAlign: 'left' },
-    progress: { backgroundColor: '#4a5568', borderRadius: '4px', overflow: 'hidden', margin: '10px 0', height: '10px' }
-  };
+  const filterBySearch = (arr, key = 'title') =>
+    arr.filter(i => (i[key] || '').toLowerCase().includes(searchQuery.toLowerCase()));
 
+  // ─── RENDER ────────────────────────────────────────────────────
   return (
-    <div style={styles.container}>
-      <div style={{ fontSize: '26px', fontWeight: 'bold', padding: '10px' }}>Shafina Platform</div>
-      <AdBanner />
+    <>
+      <style>{css}</style>
+      <div style={{ backgroundColor: C.bg, color: C.textPrimary, minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 0 40px' }}>
 
-      {!user ? (
-        <div style={styles.card}>
-          <h2>{isLogin ? 'Shiga (Login)' : 'Ƙirƙiri Asusu'}</h2>
-          <form onSubmit={handleAuth}>
-            <input style={styles.input} type="email" placeholder="Saka Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-            <input style={styles.input} type="password" placeholder="Saka Password" value={password} onChange={(e) => setPassword(e.target.value)} />
-            <button style={styles.button} type="submit">{isLogin ? 'Shiga' : 'Yi Rajista'}</button>
-          </form>
-          <div style={{ color: '#4fd1c5', marginTop: '15px', cursor: 'pointer' }} onClick={() => setIsLogin(!isLogin)}>
-            {isLogin ? "Ba ka da asusu? Ƙirƙiri sabo" : "Kuna da asusu? Shiga"}
-          </div>
+        {/* ── HEADER ── */}
+        <div style={{ width: '90%', maxWidth: '468px', padding: '10px 0 6px', textAlign: 'center' }}>
+          <div className="logo-text">Shuaibu Design and Technology</div>
+          <div className="logo-sub">SDAT Network</div>
         </div>
-      ) : (
-        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <div style={{ width: '90%', maxWidth: '468px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', color: '#a0aec0' }}>
-            <span>📧 {user.email}</span>
-            {currentScreen !== 'dashboard' && <button style={{ backgroundColor: '#4a5568', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }} onClick={() => setCurrentScreen('dashboard')}>⬅️ Menun Baya</button>}
+
+        <AdBanner />
+
+{/* ── AUTH ── */}
+        {!user ? (
+          <div className="card" style={{ width: '90%', maxWidth: '468px', marginTop: '20px' }}>
+            <h2 style={{ marginBottom: '18px', fontSize: '18px', fontWeight: '700', color: C.textPrimary }}>
+              {isLogin ? '👤 Shiga' : '✨ Sabon Asusu'}
+            </h2>
+            <form onSubmit={handleAuth}>
+              <input className="field" type="email" placeholder="📧 Email" value={email} onChange={e => setEmail(e.target.value)} />
+              <input className="field" type="password" placeholder="🔐 Password" value={password} onChange={e => setPassword(e.target.value)} style={{ marginBottom: '14px' }} />
+              <button className="btn-primary" type="submit">
+                {isLogin ? 'Shiga' : 'Yi Rajista'}
+              </button>
+            </form>
+            <div
+              style={{ color: C.teal, marginTop: '16px', cursor: 'pointer', fontSize: '13px', textAlign: 'center' }}
+              onClick={() => setIsLogin(!isLogin)}
+            >
+              {isLogin ? "Ba ka da asusu? → Ƙirƙiri sabo" : "Kuna da asusu? → Shiga"}
+            </div>
           </div>
 
-          <input type="text" placeholder="Nemo rubutu a nan..." style={styles.searchBar} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+        ) : (
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
 
-          {currentScreen === 'dashboard' && (
-            <div style={styles.grid}>
-              {dashboardItems.filter(i => i.name.toLowerCase().includes(searchQuery.toLowerCase())).map((item) => (
-                <button key={item.name} style={styles.gridBtn} onClick={() => setCurrentScreen(item.name.toLowerCase())}>
-                  <span style={{ fontSize: '24px' }}>{item.icon}</span>
-                  <span style={{ fontWeight: 'bold' }}>{item.name === 'Expensive' ? 'Expense Tracker' : item.name}</span>
+            {/* ── TOP BAR ── */}
+            <div className="topbar">
+              <div className="user-pill">
+                <span>📧</span>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.email}</span>
+              </div>
+              {currentScreen !== 'dashboard' && (
+                <button className="btn-back" onClick={() => nav('dashboard')}>
+                  ← Baya
                 </button>
-              ))}
+              )}
             </div>
-          )}
 
-          {currentScreen === 'video' && (
-            <div style={{ width: '90%', maxWidth: '468px' }}>
-              <h3>▶️ Sashin Bidiyo (Videos Folder)</h3>
-              <form onSubmit={(e) => handleStoreUpload(e, videoFile, videoTitle, videoPassword, 'video', 'videos', setVideoFile, setVideoTitle, setVideoPassword)} style={styles.vCard}>
-                <input style={styles.input} placeholder="Sunan Bidiyo" value={videoTitle} onChange={e => setVideoTitle(e.target.value)} />
-                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="video/*" onChange={e => setVideoFile(e.target.files)} />
-                <input style={styles.input} type="password" placeholder="Upload Password" value={videoPassword} onChange={e => setVideoPassword(e.target.value)} />
-                {uploadState.isUploading && uploadState.activeSection === 'video' && (
-                  <div>
-                    <div style={styles.progress}><div style={{ width: `${uploadState.progress}%`, backgroundColor: '#319795', height: '100%' }}></div></div>
-                    <p style={{ fontSize: '12px', textAlign: 'center' }}>Ana ɗorawa: {uploadState.progress}%</p>
-                  </div>
-                )}
-                <button style={styles.button} type="submit" disabled={uploadState.isUploading}>{uploadState.isUploading && uploadState.activeSection === 'video' ? 'Yana Tafiya...' : 'Ɗora Bidiyo ta Store'}</button>
-              </form>
-              {videos.filter(v => v.title.toLowerCase().includes(searchQuery.toLowerCase())).map(v => (
-                <div key={v.id} style={styles.vCard}>
-                  <h4>{v.title}</h4>
-                  <video src={v.url} controls style={{ width: '100%', borderRadius: '4px' }} />
-                </div>
-              ))}
+            {/* ── SEARCH ── */}
+            <div className="search-wrap">
+              <span className="search-icon">🔍</span>
+              <input
+                className="search-input"
+                type="text"
+                placeholder="Nemo rubutu a nan..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
             </div>
-          )}
-{currentScreen === 'pdf' && (
-            <div style={{ width: '90%', maxWidth: '468px' }}>
-              <h3>📄 Sashin Littattafai (PDFs Folder)</h3>
-              <form onSubmit={(e) => handleStoreUpload(e, pdfFile, pdfTitle, pdfPassword, 'pdf', 'pdfs', setPdfFile, setPdfTitle, setPdfPassword)} style={styles.vCard}>
-                <input style={styles.input} placeholder="Sunan Littafi" value={pdfTitle} onChange={e => setPdfTitle(e.target.value)} />
-                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="application/pdf" onChange={e => setPdfFile(e.target.files)} />
-                <input style={styles.input} type="password" placeholder="Upload Password" value={pdfPassword} onChange={e => setPdfPassword(e.target.value)} />
-                {uploadState.isUploading && uploadState.activeSection === 'pdf' && (
-                  <div>
-                    <div style={styles.progress}><div style={{ width: `${uploadState.progress}%`, backgroundColor: '#319795', height: '100%' }}></div></div>
-                    <p style={{ fontSize: '12px', textAlign: 'center' }}>Ana ɗorawa: {uploadState.progress}%</p>
-                  </div>
-                )}
-                <button style={styles.button} type="submit" disabled={uploadState.isUploading}>{uploadState.isUploading && uploadState.activeSection === 'pdf' ? 'Yana Tafiya...' : 'Ɗora PDF ta Store'}</button>
-              </form>
-              {pdfs.filter(p => p.title.toLowerCase().includes(searchQuery.toLowerCase())).map(p => (
-                <div key={p.id} style={styles.vCard}>
-                  <h4>{p.title}</h4>
-                  <a href={p.url} target="_blank" rel="noreferrer" style={{ color: '#4fd1c5', fontWeight: 'bold' }}>Buɗe Littafin PDF ↗️</a>
-                </div>
-              ))}
-            </div>
-          )}
 
-          {currentScreen === 'audio' && (
-            <div style={{ width: '90%', maxWidth: '468px' }}>
-              <h3>🎵 Sashin Sauti (Audios Folder)</h3>
-              <form onSubmit={(e) => handleStoreUpload(e, audioFile, audioTitle, audioPassword, 'audio', 'audios', setAudioFile, setAudioTitle, setAudioPassword)} style={styles.vCard}>
-                <input style={styles.input} placeholder="Sunan Sauti" value={audioTitle} onChange={e => setAudioTitle(e.target.value)} />
-                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="audio/*" onChange={e => setAudioFile(e.target.files)} />
-                <input style={styles.input} type="password" placeholder="Upload Password" value={audioPassword} onChange={e => setAudioPassword(e.target.value)} />
-                {uploadState.isUploading && uploadState.activeSection === 'audio' && (
-                  <div>
-                    <div style={styles.progress}><div style={{ width: `${uploadState.progress}%`, backgroundColor: '#319795', height: '100%' }}></div></div>
-                    <p style={{ fontSize: '12px', textAlign: 'center' }}>Ana ɗorawa: {uploadState.progress}%</p>
-                  </div>
-                )}
-                <button style={styles.button} type="submit" disabled={uploadState.isUploading}>{uploadState.isUploading && uploadState.activeSection === 'audio' ? 'Yana Tafiya...' : 'Ɗora Sauti ta Store'}</button>
-              </form>
-              {audios.filter(a => a.title.toLowerCase().includes(searchQuery.toLowerCase())).map(a => (
-                <div key={a.id} style={styles.vCard}>
-                  <h4>{a.title}</h4>
-                  <audio src={a.url} controls style={{ width: '100%' }} />
-                </div>
-              ))}
-            </div>
-          )}
-
-          {currentScreen === 'image' && (
-            <div style={{ width: '90%', maxWidth: '468px' }}>
-              <h3>🖼️ Sashin Hoto (Images Folder)</h3>
-              <form onSubmit={(e) => handleStoreUpload(e, imageFile, imageTitle, imagePassword, 'image', 'images', setImageFile, setImageTitle, setImagePassword)} style={styles.vCard}>
-                <input style={styles.input} placeholder="Sunan Hoto" value={imageTitle} onChange={e => setImageTitle(e.target.value)} />
-                <input style={{ ...styles.input, backgroundColor: 'transparent' }} type="file" accept="image/*" onChange={e => setImageFile(e.target.files)} />
-                <input style={styles.input} type="password" placeholder="Upload Password" value={imagePassword} onChange={e => setImagePassword(e.target.value)} />
-                {uploadState.isUploading && uploadState.activeSection === 'image' && (
-                  <div>
-                    <div style={styles.progress}><div style={{ width: `${uploadState.progress}%`, backgroundColor: '#319795', height: '100%' }}></div></div>
-                    <p style={{ fontSize: '12px', textAlign: 'center' }}>Ana ɗorawa: {uploadState.progress}%</p>
-                  </div>
-                )}
-                <button style={styles.button} type="submit" disabled={uploadState.isUploading}>{uploadState.isUploading && uploadState.activeSection === 'image' ? 'Yana Tafiya...' : 'Ɗora Hoto ta Store'}</button>
-              </form>
-              {images.filter(img => img.title.toLowerCase().includes(searchQuery.toLowerCase())).map(img => (
-                <div key={img.id} style={styles.vCard}>
-                  <h4>{img.title}</h4>
-                  <img src={img.url} alt={img.title} style={{ width: '100%', borderRadius: '4px' }} />
-                </div>
-              ))}
-            </div>
-          )}
-
-          {currentScreen === 'attendance' && (
-            <div style={{ width: '90%', maxWidth: '468px' }}>
-              <h3>📅 Sashin Halarta (Attendance)</h3>
-              <div style={styles.vCard}>
-                <h4>Ƙirƙiri Aji</h4>
-                <input style={styles.input} placeholder="Sunan Aji" value={newClassName} onChange={e => setNewClassName(e.target.value)} />
-                <button style={styles.button} onClick={async () => { if(newClassName) { await addDoc(collection(db, "classes"), { className: newClassName }); setNewClassName(''); alert("An kirkiro aji!"); } }}>Ajiye Aji</button>
+            {/* ════════════════════════════════════════════════
+                DASHBOARD
+            ════════════════════════════════════════════════ */}
+            {currentScreen === 'dashboard' && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', width: '90%', maxWidth: '468px' }}>
+                {Object.entries(sectionMeta)
+                  .filter(([key, m]) => m.label.toLowerCase().includes(searchQuery.toLowerCase()))
+                  .map(([key, m]) => (
+                    <button key={key} className="grid-btn" onClick={() => nav(key)}>
+                      <div className="icon-wrap" style={{ background: m.bg }}>
+                        <span>{m.icon}</span>
+                      </div>
+                      <span className="label">{m.label}</span>
+                    </button>
+                  ))
+                }
               </div>
-              <form onSubmit={handleStudentSubmit} style={styles.vCard}>
-                <h4>Rijistar Halartar Ɗalibi</h4>
-                <select style={styles.input} value={selectedClassId} onChange={e => setSelectedClassId(e.target.value)}>
-                  <option value="">Zaɓi Aji</option>
-                  {classes.map(c => <option key={c.id} value={c.id}>{c.className}</option>)}
-                </select>
-                <input style={styles.input} placeholder="Sunan Ɗalibi" value={stdName} onChange={e => setStdName(e.target.value)} />
-                <input style={styles.input} placeholder="Shekaru" value={stdAge} onChange={e => setStdAge(e.target.value)} />
-                <input style={styles.input} type="date" value={stdDate} onChange={e => setStdDate(e.target.value)} />
-                <input style={styles.input} type="time" value={stdTime} onChange={e => setStdTime(e.target.value)} />
-                <input style={styles.input} placeholder="Karin Bayani" value={stdDesc} onChange={e => setStdDesc(e.target.value)} />
-                <button style={styles.button} type="submit">Ɗauki Halarta (Present)</button>
-              </form>
-              {students.filter(s => s.classId === selectedClassId && s.name.toLowerCase().includes(searchQuery.toLowerCase())).map(s => (
-                <div key={s.id} style={styles.vCard}>
-                  <h4>👤 {s.name} ({s.age} Yrs)</h4>
-                  <p>📅 Rana: {s.date} - Lokaci: {s.time}</p>
-                  <p>📝 Bayani: {s.description}</p>
-                  <span style={{ padding: '4px 8px', backgroundColor: '#38a169', borderRadius: '4px', fontSize: '12px' }}>{s.status}</span>
-                </div>
-              ))}
-            </div>
-          )}
-{currentScreen === 'school management' && (
-            <div style={{ width: '90%', maxWidth: '468px' }}>
-              <h3>🏫 School Management System</h3>
-              <div style={styles.vCard}>
-                <h4>Ƙirƙiri Ajin Makaranta</h4>
-                <input style={styles.input} placeholder="Misali: Primary 1" value={newSchoolClassName} onChange={e => setNewSchoolClassName(e.target.value)} />
-                <button style={styles.button} onClick={async () => { if(newSchoolClassName) { await addDoc(collection(db, "school_classes"), { className: newSchoolClassName }); setNewSchoolClassName(''); alert("An kaddamar da aji!"); } }}>Kaddamar da Aji</button>
-              </div>
-              <form onSubmit={handleSchSubmit} style={styles.vCard}>
-                <h4>Biyan Kuɗaɗen Makaranta</h4>
-                <select style={styles.input} value={selectedSchoolClassId} onChange={e => setSelectedSchoolClassId(e.target.value)}>
-                  <option value="">Zaɓi Ajin Makaranta</option>
-                  {schoolClasses.map(sc => <option key={sc.id} value={sc.id}>{sc.className}</option>)}
-                </select>
-                <input style={styles.input} placeholder="Sunan Ɗalibi" value={schName} onChange={e => setSchName(e.target.value)} />
-                <input style={styles.input} placeholder="Shekaru" value={schAge} onChange={e => setSchAge(e.target.value)} />
-                <input style={styles.input} type="date" value={schDate} onChange={e => setSchDate(e.target.value)} />
-                <select style={styles.input} value={schTerm} onChange={e => setSchTerm(e.target.value)}>
-                  <option value="First Term">First Term</option>
-                  <option value="Second Term">Second Term</option>
-                  <option value="Third Term">Third Term</option>
-                </select>
-                <input style={styles.input} type="number" placeholder="Adadin Kuɗi (₦)" value={schAmount} onChange={e => setSchAmount(e.target.value)} />
-                <input style={styles.input} placeholder="Karin bayani" value={schDesc} onChange={e => setSchDesc(e.target.value)} />
-                <button style={styles.button} type="submit">Adana Biyan Kuɗi</button>
-              </form>
-              {schoolStudents.filter(ss => ss.classId === selectedSchoolClassId && ss.name.toLowerCase().includes(searchQuery.toLowerCase())).map(ss => (
-                <div key={ss.id} style={styles.vCard}>
-                  <h4>🎓 {ss.name} ({ss.age} Yrs)</h4>
-                  <p>💰 Adadin Kuɗi: ₦{ss.amount.toLocaleString()}</p>
-                  <p>📅 Zango: {ss.term} ({ss.date})</p>
-                  <p>📝 Bayani: {ss.description}</p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {currentScreen === 'expensive' && (
-            <div style={{ width: '90%', maxWidth: '468px' }}>
-              <h3>💰 Expense Tracker</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
-                <div style={{ backgroundColor: '#234e52', padding: '10px', borderRadius: '6px', textAlign: 'center' }}>
-                  <span style={{ color: '#a3e635', fontSize: '13px' }}>Income</span>
-                  <h4 style={{ margin: '5px 0 0 0' }}>₦{totalIncome.toLocaleString()}</h4>
-                </div>
-                <div style={{ backgroundColor: '#742a2a', padding: '10px', borderRadius: '6px', textAlign: 'center' }}>
-                  <span style={{ color: '#fca5a5', fontSize: '13px' }}>Expense</span>
-                  <h4 style={{ margin: '5px 0 0 0' }}>₦{totalExpense.toLocaleString()}</h4>
-                </div>
-              </div>
-              <div style={{ backgroundColor: totalBalance >= 0 ? '#2b6cb0' : '#9b2c2c', padding: '10px', borderRadius: '6px', textAlign: 'center', fontWeight: 'bold', marginBottom: '15px' }}>
-                Balance: ₦{totalBalance.toLocaleString()}
-              </div>
-              <form onSubmit={handleTransactionSubmit} style={styles.vCard}>
-                <h4>Ƙara Mu'amalar Kuɗi</h4>
-                <input style={styles.input} placeholder="Abin da aka yi" value={transTitle} onChange={e => setTransTitle(e.target.value)} />
-                <input style={styles.input} type="number" placeholder="Adadin Kuɗi (₦)" value={transAmount} onChange={e => setTransAmount(e.target.value)} />
-                <select style={styles.input} value={transType} onChange={e => setTransType(e.target.value)}>
-                  <option value="income">Kuɗi Ya Shigo (Income ✅)</option>
-                  <option value="expense">Kuɗi Ya Fita (Expense ❌)</option>
-                </select>
-                <input style={styles.input} type="date" value={transDate} onChange={e => setTransDate(e.target.value)} />
-                <input style={styles.input} placeholder="Karin bayani" value={transDesc} onChange={e => setTransDesc(e.target.value)} />
-                <button style={styles.button} type="submit">Ajiye Bayani</button>
-              </form>
-              {transactions.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase())).map(t => (
-                <div key={t.id} style={{ ...styles.vCard, borderLeft: t.type === 'income' ? '5px solid #48bb78' : '5px solid #f56565' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <h4 style={{ margin: 0 }}>{t.title}</h4>
-                    <span style={{ fontWeight: 'bold', color: t.type === 'income' ? '#48bb78' : '#f56565' }}>{t.type === 'income' ? '+' : '-'} ₦{t.amount.toLocaleString()}</span>
+            )}
+ {/* ════════════════════════════════════════════════
+                VIDEO
+            ════════════════════════════════════════════════ */}
+            {currentScreen === 'video' && (
+              <div style={{ width: '90%', maxWidth: '468px' }}>
+                <div className="section-title">▶️ Sashin Bidiyo</div>
+                <div className="section-sub">Videos Folder</div>
+                <UploadSection
+                  sectionKey="video" collectionName="videos"
+                  accept="video/*" placeholder="Sunan Bidiyo"
+                  uploadState={uploadState} onUpload={handleStoreUpload}
+                />
+                <div className="divider" />
+                {filterBySearch(videos).map(v => (
+                  <div key={v.id} className="media-card">
+                    <h4>▶️ {v.title}</h4>
+                    <video src={v.url} controls style={{ width: '100%', borderRadius: '8px', background: '#000' }} />
                   </div>
-                  <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#a0aec0' }}>📅 {t.date} {t.description && `| 📝 ${t.description}`}</p>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+                {videos.length === 0 && <p style={{ color: C.textMuted, fontSize: '13px', textAlign: 'center', padding: '20px 0' }}>Babu bidiyo da aka ɗora tukuna.</p>}
+              </div>
+            )}
 
-          <button style={{ padding: '8px 16px', backgroundColor: '#e53e3e', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', marginTop: '20px' }} onClick={() => { auth.signOut(); setCurrentScreen('dashboard'); }}>Fita (Logout)</button>
-        </div>
-      )}
-    </div>
+            {/* ════════════════════════════════════════════════
+                PDF
+            ════════════════════════════════════════════════ */}
+            {currentScreen === 'pdf' && (
+              <div style={{ width: '90%', maxWidth: '468px' }}>
+                <div className="section-title">📄 Sashin Littattafai</div>
+                <div className="section-sub">PDFs Folder</div>
+                <UploadSection
+                  sectionKey="pdf" collectionName="pdfs"
+                  accept="application/pdf" placeholder="Sunan Littafi"
+                  uploadState={uploadState} onUpload={handleStoreUpload}
+                />
+                <div className="divider" />
+                {filterBySearch(pdfs).map(p => (
+                  <div key={p.id} className="media-card" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span style={{ fontSize: '28px' }}>📄</span>
+                    <div>
+                      <h4 style={{ margin: 0 }}>{p.title}</h4>
+                      <a href={p.url} target="_blank" rel="noreferrer"
+                        style={{ color: C.teal, fontSize: '12px', fontWeight: '600', textDecoration: 'none' }}>
+                        Buɗe PDF ↗
+                      </a>
+                    </div>
+                  </div>
+                ))}
+                {pdfs.length === 0 && <p style={{ color: C.textMuted, fontSize: '13px', textAlign: 'center', padding: '20px 0' }}>Babu PDF da aka ɗora tukuna.</p>}
+              </div>
+            )}
+
+            {/* ════════════════════════════════════════════════
+                AUDIO
+            ════════════════════════════════════════════════ */}
+            {currentScreen === 'audio' && (
+              <div style={{ width: '90%', maxWidth: '468px' }}>
+                <div className="section-title">🎵 Sashin Sauti</div>
+                <div className="section-sub">Audios Folder</div>
+                <UploadSection
+                  sectionKey="audio" collectionName="audios"
+                  accept="audio/*" placeholder="Sunan Sauti"
+                  uploadState={uploadState} onUpload={handleStoreUpload}
+                />
+                <div className="divider" />
+                {filterBySearch(audios).map(a => (
+                  <div key={a.id} className="media-card">
+                    <h4>🎵 {a.title}</h4>
+                    <audio src={a.url} controls style={{ width: '100%' }} />
+                  </div>
+                ))}
+                {audios.length === 0 && <p style={{ color: C.textMuted, fontSize: '13px', textAlign: 'center', padding: '20px 0' }}>Babu sauti da aka ɗora tukuna.</p>}
+              </div>
+            )}
+
+            {/* ════════════════════════════════════════════════
+                IMAGE
+            ════════════════════════════════════════════════ */}
+            {currentScreen === 'image' && (
+              <div style={{ width: '90%', maxWidth: '468px' }}>
+                <div className="section-title">🖼️ Sashin Hoto</div>
+                <div className="section-sub">Images Folder</div>
+                <UploadSection
+                  sectionKey="image" collectionName="images"
+                  accept="image/*" placeholder="Sunan Hoto"
+                  uploadState={uploadState} onUpload={handleStoreUpload}
+                />
+                <div className="divider" />
+                {filterBySearch(images).map(img => (
+                  <div key={img.id} className="media-card">
+                    <h4>🖼️ {img.title}</h4>
+                    <img src={img.url} alt={img.title} style={{ width: '100%', borderRadius: '8px', display: 'block' }} />
+                  </div>
+                ))}
+                {images.length === 0 && <p style={{ color: C.textMuted, fontSize: '13px', textAlign: 'center', padding: '20px 0' }}>Babu hoto da aka ɗora tukuna.</p>}
+              </div>
+            )}
+{/* ════════════════════════════════════════════════
+                ATTENDANCE
+            ════════════════════════════════════════════════ */}
+            {currentScreen === 'attendance' && (
+              <div style={{ width: '90%', maxWidth: '468px' }}>
+                <div className="section-title">📅 Sashin Halarta</div>
+                <div className="section-sub">Attendance Management</div>
+
+                <div className="card">
+                  <p style={{ fontSize: '13px', fontWeight: '600', color: C.textSecondary, marginBottom: '10px' }}>➕ Ƙirƙiri Aji</p>
+                  <input className="field" placeholder="Sunan Aji (e.g. JSS 1)" value={newClassName} onChange={e => setNewClassName(e.target.value)} />
+                  <button className="btn-primary" style={{ marginTop: '8px' }} onClick={async () => {
+                    if (newClassName) { await addDoc(collection(db, "classes"), { className: newClassName }); setNewClassName(''); alert("An ƙirƙiro aji!"); }
+                  }}>Ajiye Aji</button>
+                </div>
+
+                <form onSubmit={handleStudentSubmit} className="card" style={{ marginTop: '10px' }}>
+                  <p style={{ fontSize: '13px', fontWeight: '600', color: C.textSecondary, marginBottom: '10px' }}>📝 Rijistar Halarta</p>
+                  <select className="field" value={selectedClassId} onChange={e => setSelectedClassId(e.target.value)}>
+                    <option value="">— Zaɓi Aji —</option>
+                    {classes.map(c => <option key={c.id} value={c.id}>{c.className}</option>)}
+                  </select>
+                  <input className="field" placeholder="Sunan Ɗalibi" value={stdName} onChange={e => setStdName(e.target.value)} />
+                  <input className="field" placeholder="Shekaru" value={stdAge} onChange={e => setStdAge(e.target.value)} />
+                  <input className="field" type="date" value={stdDate} onChange={e => setStdDate(e.target.value)} />
+                  <input className="field" type="time" value={stdTime} onChange={e => setStdTime(e.target.value)} />
+                  <input className="field" placeholder="Karin Bayani" value={stdDesc} onChange={e => setStdDesc(e.target.value)} />
+                  <button className="btn-primary" type="submit" style={{ marginTop: '8px' }}>✅ Ɗauki Halarta (Present)</button>
+                </form>
+
+                <div className="divider" />
+                {students
+                  .filter(s => s.classId === selectedClassId && (s.name || '').toLowerCase().includes(searchQuery.toLowerCase()))
+                  .map(s => (
+                    <div key={s.id} className="media-card">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <h4>👤 {s.name} <span style={{ fontSize: '11px', color: C.textMuted }}>({s.age} Yrs)</span></h4>
+                        <span className="tag" style={{ background: '#14532d44', color: C.green }}>{s.status}</span>
+                      </div>
+                      <p style={{ fontSize: '12px', color: C.textSecondary, marginTop: '6px' }}>📅 {s.date} · ⏰ {s.time}</p>
+                      {s.description && <p style={{ fontSize: '12px', color: C.textMuted, marginTop: '4px' }}>📝 {s.description}</p>}
+                    </div>
+                  ))}
+              </div>
+            )}
+
+            {/* ════════════════════════════════════════════════
+                SCHOOL MANAGEMENT
+            ════════════════════════════════════════════════ */}
+            {currentScreen === 'school management' && (
+              <div style={{ width: '90%', maxWidth: '468px' }}>
+                <div className="section-title">🏫 School Management</div>
+                <div className="section-sub">Fee & Student Records</div>
+
+                <div className="card">
+                  <p style={{ fontSize: '13px', fontWeight: '600', color: C.textSecondary, marginBottom: '10px' }}>➕ Ƙirƙiri Aji</p>
+                  <input className="field" placeholder="Misali: Primary 1" value={newSchoolClassName} onChange={e => setNewSchoolClassName(e.target.value)} />
+                  <button className="btn-primary" style={{ marginTop: '8px' }} onClick={async () => {
+                    if (newSchoolClassName) { await addDoc(collection(db, "school_classes"), { className: newSchoolClassName }); setNewSchoolClassName(''); alert("An ƙirƙiro aji!"); }
+                  }}>Kaddamar da Aji</button>
+                </div>
+
+                <form onSubmit={handleSchSubmit} className="card" style={{ marginTop: '10px' }}>
+                  <p style={{ fontSize: '13px', fontWeight: '600', color: C.textSecondary, marginBottom: '10px' }}>💳 Biyan Kuɗaɗen Makaranta</p>
+                  <select className="field" value={selectedSchoolClassId} onChange={e => setSelectedSchoolClassId(e.target.value)}>
+                    <option value="">— Zaɓi Aji —</option>
+                    {schoolClasses.map(sc => <option key={sc.id} value={sc.id}>{sc.className}</option>)}
+                  </select>
+                  <input className="field" placeholder="Sunan Ɗalibi" value={schName} onChange={e => setSchName(e.target.value)} />
+                  <input className="field" placeholder="Shekaru" value={schAge} onChange={e => setSchAge(e.target.value)} />
+                  <input className="field" type="date" value={schDate} onChange={e => setSchDate(e.target.value)} />
+                  <select className="field" value={schTerm} onChange={e => setSchTerm(e.target.value)}>
+                    <option value="First Term">First Term</option>
+                    <option value="Second Term">Second Term</option>
+                    <option value="Third Term">Third Term</option>
+                  </select>
+                  <input className="field" type="number" placeholder="Adadin Kuɗi (₦)" value={schAmount} onChange={e => setSchAmount(e.target.value)} />
+                  <input className="field" placeholder="Karin bayani" value={schDesc} onChange={e => setSchDesc(e.target.value)} />
+                  <button className="btn-primary" type="submit" style={{ marginTop: '8px' }}>Adana Biyan Kuɗi</button>
+                </form>
+
+                <div className="divider" />
+                {schoolStudents
+                  .filter(ss => ss.classId === selectedSchoolClassId && (ss.name || '').toLowerCase().includes(searchQuery.toLowerCase()))
+                  .map(ss => (
+                    <div key={ss.id} className="media-card">
+                      <h4>🎓 {ss.name} <span style={{ fontSize: '11px', color: C.textMuted }}>({ss.age} Yrs)</span></h4>
+                      <p style={{ fontSize: '13px', color: C.green, fontWeight: '600', marginTop: '6px' }}>₦{(ss.amount || 0).toLocaleString()}</p>
+                      <p style={{ fontSize: '12px', color: C.textSecondary, marginTop: '4px' }}>📅 {ss.term} · {ss.date}</p>
+                      {ss.description && <p style={{ fontSize: '12px', color: C.textMuted, marginTop: '4px' }}>📝 {ss.description}</p>}
+                    </div>
+                  ))}
+              </div>
+            )}
+
+            {/* ════════════════════════════════════════════════
+                EXPENSE TRACKER
+            ════════════════════════════════════════════════ */}
+            {currentScreen === 'expensive' && (
+              <div style={{ width: '90%', maxWidth: '468px' }}>
+                <div className="section-title">💰 Expense Tracker</div>
+                <div className="section-sub">Kula da Kuɗi</div>
+
+                {/* Stats */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                  <div className="stat-card">
+                    <div style={{ fontSize: '11px', color: C.green, fontWeight: '600', marginBottom: '4px' }}>INCOME ↑</div>
+                    <div style={{ fontSize: '18px', fontWeight: '700' }}>₦{totalIncome.toLocaleString()}</div>
+                  </div>
+                  <div className="stat-card">
+                    <div style={{ fontSize: '11px', color: C.red, fontWeight: '600', marginBottom: '4px' }}>EXPENSE ↓</div>
+                    <div style={{ fontSize: '18px', fontWeight: '700' }}>₦{totalExpense.toLocaleString()}</div>
+                  </div>
+                </div>
+                <div className="stat-card" style={{ marginBottom: '12px', border: `1px solid ${totalBalance >= 0 ? C.green + '44' : C.red + '44'}` }}>
+                  <div style={{ fontSize: '11px', color: C.textMuted, marginBottom: '4px' }}>BALANCE</div>
+                  <div style={{ fontSize: '22px', fontWeight: '700', color: totalBalance >= 0 ? C.green : C.red }}>
+                    {totalBalance >= 0 ? '+' : ''}₦{totalBalance.toLocaleString()}
+                  </div>
+                </div>
+
+                <form onSubmit={handleTransactionSubmit} className="card">
+                  <p style={{ fontSize: '13px', fontWeight: '600', color: C.textSecondary, marginBottom: '10px' }}>➕ Ƙara Mu'amala</p>
+                  <input className="field" placeholder="Abin da aka yi" value={transTitle} onChange={e => setTransTitle(e.target.value)} />
+                  <input className="field" type="number" placeholder="Adadin Kuɗi (₦)" value={transAmount} onChange={e => setTransAmount(e.target.value)} />
+                  <select className="field" value={transType} onChange={e => setTransType(e.target.value)}>
+                    <option value="income">✅ Kuɗi Ya Shigo (Income)</option>
+                    <option value="expense">❌ Kuɗi Ya Fita (Expense)</option>
+                  </select>
+                  <input className="field" type="date" value={transDate} onChange={e => setTransDate(e.target.value)} />
+                  <input className="field" placeholder="Karin bayani" value={transDesc} onChange={e => setTransDesc(e.target.value)} />
+                  <button className="btn-primary" type="submit" style={{ marginTop: '8px' }}>Ajiye Bayani</button>
+                </form>
+
+ <div className="divider" />
+                {filterBySearch(transactions).map(t => (
+                  <div key={t.id} className="media-card" style={{ borderLeft: `3px solid ${t.type === 'income' ? C.green : C.red}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontWeight: '600', fontSize: '14px' }}>{t.title}</span>
+                      <span style={{ fontWeight: '700', color: t.type === 'income' ? C.green : C.red }}>
+                        {t.type === 'income' ? '+' : '-'}₦{(t.amount || 0).toLocaleString()}
+                      </span>
+                    </div>
+                    {(t.date || t.description) && (
+                      <p style={{ fontSize: '12px', color: C.textMuted, marginTop: '6px' }}>
+                        {t.date && `📅 ${t.date}`}{t.description && ` · 📝 ${t.description}`}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* ── LOGOUT ── */}
+            <div style={{ marginTop: '28px' }}>
+              <button className="btn-danger" onClick={() => { signOut(auth); nav('dashboard'); }}>
+                Fita (Logout)
+              </button>
+            </div>
+
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 
