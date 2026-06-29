@@ -539,7 +539,7 @@ const [schoolClasses, setSchoolClasses] = useState([]);
       setUploadState({ activeSection: null, progress: 0, isUploading: false });
     });
 
-    xhr.open('POST', 'https://api.cloudinary.com/v1_1/2d8acfc4-63bc-4dfd-abec-0af027536891/auto/upload', true);
+    xhr.open('POST', 'https://api.cloudinary.com/v1_1/djzaxvlus/auto/upload', true);
     xhr.send(formData);
   };
 
