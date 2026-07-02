@@ -693,7 +693,8 @@ const handleTransactionSubmit = async (e) => {
             )}
 
             {/* ════════════════════════════════════════════════
-                PDF
+               
+ PDF
             ════════════════════════════════════════════════ */}
             {currentScreen === 'pdf' && (
               <div style={{ width: '90%', maxWidth: '468px' }}>
@@ -701,6 +702,7 @@ const handleTransactionSubmit = async (e) => {
                 <div className="section-sub">PDFs Folder</div>
                 <UploadSection
                   sectionKey="pdf" collectionName="pdfs"
+yy
                   accept="application/pdf" placeholder="Sunan Littafi"
                   uploadState={uploadState} onUpload={handleStoreUpload}
                 />
@@ -710,8 +712,7 @@ const handleTransactionSubmit = async (e) => {
                     <span style={{ fontSize: '28px' }}>📄</span>
                     <div>
                       <h4 style={{ margin: 0 }}>{p.title}</h4>
-<a href={`https://docs.google.com/viewer?url=${encodeURIComponent(p.url)}`} target="_blank"                        style={{ color: C.teal, fontSize: '12px', fontWeight: '600', textDecoration: 'none' }}>
-                        Buɗe PDF ↗
+<a href={p.url} download target="_blank"                        Buɗe PDF ↗
                       </a>
                     </div>
                   </div>
