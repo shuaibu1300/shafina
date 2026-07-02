@@ -519,7 +519,7 @@ const [schoolClasses, setSchoolClasses] = useState([]);
           await addDoc(collection(db, collectionName), {
             title,
             const finalURL = collectionName === "pdfs" ? data.secure_url.replac*
-image/upload/", "/raw/upload/fl_attachment/") : data.secure_url;
+image/upload/", "/raw/upload/fl_attachment:/") : data.secure_url;
             url: finalURL,
             createdAt: new Date()
           });
@@ -710,8 +710,7 @@ const handleTransactionSubmit = async (e) => {
                     <span style={{ fontSize: '28px' }}>📄</span>
                     <div>
                       <h4 style={{ margin: 0 }}>{p.title}</h4>
-                      <a href={p.url} target="_blank" rel="noreferrer"
-                        style={{ color: C.teal, fontSize: '12px', fontWeight: '600', textDecoration: 'none' }}>
+<a href={`https://docs.google.com/viewer?url=${encodeURIComponent(p.url)}`} target="_blank"                        style={{ color: C.teal, fontSize: '12px', fontWeight: '600', textDecoration: 'none' }}>
                         Buɗe PDF ↗
                       </a>
                     </div>
