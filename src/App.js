@@ -519,7 +519,7 @@ const [schoolClasses, setSchoolClasses] = useState([]);
           await addDoc(collection(db, collectionName), {
             title,
             const finalURL = collectionName === "pdfs" ? data.secure_url.replac*
-image/upload/", "/raw/upload/fl_attachment:/") : data.secure_url;
+image/upload/", "/raw/upload/") : data.secure_url;
             url: finalURL,
             createdAt: new Date()
           });
