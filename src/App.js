@@ -518,7 +518,7 @@ const [schoolClasses, setSchoolClasses] = useState([]);
           const data = JSON.parse(xhr.responseText);
           await addDoc(collection(db, collectionName), {
             title,
-            const finalURL = collectionName === "pdfs" ? data.secure_url.replac*
+            const finalURL = collectionName === "pdfs" ? data.secure_url.replace("/image/upload/", "/raw/upload/") : data.secure_url;
 image/upload/", "/raw/upload/") : data.secure_url;
             url: finalURL,
             createdAt: new Date()
