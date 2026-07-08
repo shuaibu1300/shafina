@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { initializeApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "firebase/auth";
 import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "firebase/firestore";
-
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 const firebaseConfig = {
   apiKey: "AIzaSyCtP-mYH8kLnu_UdfPwfOY1zDguvvfzMFw",
   authDomain: "shafina-platform.firebaseapp.com",
@@ -15,7 +15,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-
+const storage = getStorage(app);
 // ─── DESIGN TOKENS ───────────────────────────────────────────────
 const C = {
   bg:       '#0f1117',
@@ -492,6 +492,33 @@ const [schoolClasses, setSchoolClasses] = useState([]);
     } catch (err) { alert("Kuskure: " + err.message); }
   };
 
+
+  const handlePdfUpload = async (e, file, title, pass, sectionName, collectionName, resetFile, resetTitle, resetPass) => {
+    e.preventDefault();
+    if (pass !== UPLOAD_SECRET_PASSWORD) { alert("Kuskure: Upload Password ba daidai ba ne!"); return; }
+    if (!file || !title) { alert("Don Allah zaɓi fayil sannan ka saka suna!"); return; }
+
+    setUploadState({ activeSection: sectionName, progress: 0, isUploading: true });
+
+    try {
+      const storageRef = ref(storage, `pdfs/${Date.now()}_${file.name}`);
+      const uploadResult = await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(uploadResult.ref);
+
+      await addDoc(collection(db, collectionName), {
+        title,
+        url,
+        createdAt: new Date()
+      });
+
+      setUploadState({ activeSection: null, progress: 0, isUploading: false });
+      resetFile(null); resetTitle(''); resetPass('');
+      alert("✅ An adana PDF dinka cikin nasara!");
+    } catch (err) {
+      setUploadState({ activeSection: null, progress: 0, isUploading: false });
+      alert("Kuskure: " + err.message);
+    }
+  };
   // ── FIXED UPLOAD: uses file directly (not FileList) ─────────────
   const handleStoreUpload = (e, file, title, pass, sectionName, collectionName, resetFile, resetTitle, resetPass) => {
     e.preventDefault();
@@ -516,14 +543,12 @@ const [schoolClasses, setSchoolClasses] = useState([]);
       if (xhr.status >= 200 && xhr.status < 300) {
         try {
           const data = JSON.parse(xhr.responseText);
+          const finalURL = collectionName === "pdfs" ? data.secure_url.replace("/image/upload/", "/raw/upload/") : data.secure_url;
           await addDoc(collection(db, collectionName), {
             title,
-            const finalURL = collectionName === "pdfs" ? data.secure_url.replace("/image/upload/", "/raw/upload/") : data.secure_url;
-image/upload/", "/raw/upload/") : data.secure_url;
             url: finalURL,
             createdAt: new Date()
           });
-          setUploadState({ activeSection: null, progress: 0, isUploading: false });
           resetFile(null); resetTitle(''); resetPass('');
           alert("✅ An adana fayil ɗinka cikin nasara!");
         } catch {
@@ -596,7 +621,7 @@ const handleTransactionSubmit = async (e) => {
         {/* ── HEADER ── */}
         <div style={{ width: '90%', maxWidth: '468px', padding: '10px 0 6px', textAlign: 'center' }}>
           <div className="logo-text">Shuaibu Design and Technology</div>
-          <div className="logo-sub">SDAT Network</div>
+          <div className="logo-sub">SDAT Network (Shuaibu Design And Technology)</div>
         </div>
 
         <AdBanner />
@@ -704,7 +729,7 @@ const handleTransactionSubmit = async (e) => {
                   sectionKey="pdf" collectionName="pdfs"
 yy
                   accept="application/pdf" placeholder="Sunan Littafi"
-                  uploadState={uploadState} onUpload={handleStoreUpload}
+                  uploadState={uploadState} onUpload={handlePdfUpload}
                 />
                 <div className="divider" />
                 {filterBySearch(pdfs).map(p => (
@@ -712,7 +737,7 @@ yy
                     <span style={{ fontSize: '28px' }}>📄</span>
                     <div>
                       <h4 style={{ margin: 0 }}>{p.title}</h4>
-<a href={p.url} download target="_blank"                        Buɗe PDF ↗
+<a href={p.url} download target="_blank" rel="noopener noreferrer">                        Buɗe PDF 
                       </a>
                     </div>
                   </div>
