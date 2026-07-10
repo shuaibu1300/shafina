@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { initializeApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "firebase/auth";
-import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "firebase/firestore";
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 const firebaseConfig = {
   apiKey: "AIzaSyCtP-mYH8kLnu_UdfPwfOY1zDguvvfzMFw",
@@ -493,30 +493,13 @@ const [schoolClasses, setSchoolClasses] = useState([]);
   };
 
 
-  const handlePdfUpload = async (e, file, title, pass, sectionName, collectionName, resetFile, resetTitle, resetPass) => {
-    e.preventDefault();
-    if (pass !== UPLOAD_SECRET_PASSWORD) { alert("Kuskure: Upload Password ba daidai ba ne!"); return; }
-    if (!file || !title) { alert("Don Allah zaɓi fayil sannan ka saka suna!"); return; }
 
-    setUploadState({ activeSection: sectionName, progress: 0, isUploading: true });
-
+  const handleDelete = async (collectionName, id) => {
+    if (!window.confirm("Ka tabbata kana son share wannan fayil?")) return;
     try {
-      const storageRef = ref(storage, `pdfs/${Date.now()}_${file.name}`);
-      const uploadResult = await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(uploadResult.ref);
-
-      await addDoc(collection(db, collectionName), {
-        title,
-        url,
-        createdAt: new Date()
-      });
-
-      setUploadState({ activeSection: null, progress: 0, isUploading: false });
-      resetFile(null); resetTitle(''); resetPass('');
-      alert("✅ An adana PDF dinka cikin nasara!");
+      await deleteDoc(doc(db, collectionName, id));
     } catch (err) {
-      setUploadState({ activeSection: null, progress: 0, isUploading: false });
-      alert("Kuskure: " + err.message);
+      alert("Kuskure wajen share: " + err.message);
     }
   };
   // ── FIXED UPLOAD: uses file directly (not FileList) ─────────────
@@ -729,7 +712,7 @@ const handleTransactionSubmit = async (e) => {
                   sectionKey="pdf" collectionName="pdfs"
 yy
                   accept="application/pdf" placeholder="Sunan Littafi"
-                  uploadState={uploadState} onUpload={handlePdfUpload}
+                  uploadState={uploadState} onUpload={handleStoreUpload}
                 />
                 <div className="divider" />
                 {filterBySearch(pdfs).map(p => (
@@ -739,6 +722,7 @@ yy
                       <h4 style={{ margin: 0 }}>{p.title}</h4>
 <a href={p.url} download target="_blank" rel="noopener noreferrer">                        Buɗe PDF 
                       </a>
+                        <button style={{ marginLeft: "auto", background: "none", border: "none", color: C.red, fontSize: "18px", cursor: "pointer" }} onClick={() => handleDelete("pdfs", p.id)}>&#128465;</button>
                     </div>
                   </div>
                 ))}
