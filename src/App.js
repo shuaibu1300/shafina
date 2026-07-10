@@ -558,7 +558,7 @@ const [schoolClasses, setSchoolClasses] = useState([]);
     if (!selectedClassId || !stdName) return alert("Cika sunan ɗalibi da aji!");
     await addDoc(collection(db, "students"), {
       classId: selectedClassId, name: stdName, age: stdAge,
-      date: stdDate, time: stdTime, description: stdDesc, status: 'Present'
+      date: stdDate, time: stdTime, description: stdDesc, status: 'Present', userId: user?.uid
     });
     setStdName(''); setStdAge(''); setStdDate(''); setStdTime(''); setStdDesc('');
     alert("An ajiye halartar ɗalibi!");
@@ -569,7 +569,7 @@ const [schoolClasses, setSchoolClasses] = useState([]);
     if (!selectedSchoolClassId || !schName) return alert("Cika sunan ɗalibi!");
     await addDoc(collection(db, "school_students"), {
       classId: selectedSchoolClassId, name: schName, age: schAge,
-      date: schDate, term: schTerm, amount: parseFloat(schAmount) || 0, description: schDesc
+      date: schDate, term: schTerm, amount: parseFloat(schAmount) || 0, description: schDesc, userId: user?.uid
     });
     setSchName(''); setSchAge(''); setSchDate(''); setSchAmount(''); setSchDesc('');
     alert("An adana bayanin kuɗin makaranta!");
@@ -580,14 +580,14 @@ const handleTransactionSubmit = async (e) => {
     if (!transTitle || !transAmount) return alert("Cika abin da aka yi da adadin kuɗi!");
     await addDoc(collection(db, "transactions"), {
       title: transTitle, amount: parseFloat(transAmount) || 0,
-      type: transType, date: transDate, description: transDesc
+      type: transType, date: transDate, description: transDesc, userId: user?.uid
     });
     setTransTitle(''); setTransAmount(''); setTransDate(''); setTransDesc('');
     alert("An ƙara bayanin kuɗi!");
   };
 
-  const totalIncome  = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-  const totalExpense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const totalIncome  = transactions.filter(t => t.userId === user?.uid && t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const totalExpense = transactions.filter(t => t.userId === user?.uid && t.type === 'expense').reduce((s, t) => s + t.amount, 0);
   const totalBalance = totalIncome - totalExpense;
 
   const nav = (screen) => { setCurrentScreen(screen); setSearchQuery(''); };
@@ -808,7 +808,7 @@ yy
 
                 <div className="divider" />
                 {students
-                  .filter(s => s.classId === selectedClassId && (s.name || '').toLowerCase().includes(searchQuery.toLowerCase()))
+                  .filter(s => s.classId === selectedClassId && s.userId === user?.uid && (s.name || '').toLowerCase().includes(searchQuery.toLowerCase()))
                   .map(s => (
                     <div key={s.id} className="media-card">
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -858,7 +858,7 @@ yy
                 </form>
  <div className="divider" />
                 {schoolStudents
-                  .filter(ss => ss.classId === selectedSchoolClassId && (ss.name || '').toLowerCase().includes(searchQuery.toLowerCase()))
+                  .filter(ss => ss.classId === selectedSchoolClassId && ss.userId === user?.uid && (ss.name || '').toLowerCase().includes(searchQuery.toLowerCase()))
                   .map(ss => (
                     <div key={ss.id} className="media-card">
                       <h4>🎓 {ss.name} <span style={{ fontSize: '11px', color: C.textMuted }}>({ss.age} Yrs)</span></h4>
@@ -910,7 +910,7 @@ yy
                 </form>
 
                 <div className="divider" />
-                {filterBySearch(transactions).map(t => (
+                {filterBySearch(transactions.filter(t => t.userId === user?.uid)).map(t => (
                   <div key={t.id} className="media-card" style={{ borderLeft: `3px solid ${t.type === 'income' ? C.green : C.red}` }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontWeight: '600', fontSize: '14px' }}>{t.title}</span>
