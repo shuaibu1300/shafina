@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { initializeApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "firebase/auth";
 import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc } from "firebase/firestore";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 const firebaseConfig = {
   apiKey: "AIzaSyCtP-mYH8kLnu_UdfPwfOY1zDguvvfzMFw",
   authDomain: "shafina-platform.firebaseapp.com",
@@ -15,7 +14,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const storage = getStorage(app);
 // ─── DESIGN TOKENS ───────────────────────────────────────────────
 const C = {
   bg:       '#0f1117',
