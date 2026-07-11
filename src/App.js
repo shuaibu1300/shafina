@@ -788,7 +788,7 @@ yy
                   <p style={{ fontSize: '13px', fontWeight: '600', color: C.textSecondary, marginBottom: '10px' }}>➕ Ƙirƙiri Aji</p>
                   <input className="field" placeholder="Sunan Aji (e.g. JSS 1)" value={newClassName} onChange={e => setNewClassName(e.target.value)} />
                   <button className="btn-primary" style={{ marginTop: '8px' }} onClick={async () => {
-                    if (newClassName) { await addDoc(collection(db, "classes"), { className: newClassName }); setNewClassName(''); alert("An ƙirƙiro aji!"); }
+                    if (newClassName) { await addDoc(collection(db, "classes"), { className: newClassName, userId: user?.uid }); setNewClassName(''); alert("An ƙirƙiro aji!"); }
                   }}>Ajiye Aji</button>
                 </div>
 
@@ -796,7 +796,7 @@ yy
                   <p style={{ fontSize: '13px', fontWeight: '600', color: C.textSecondary, marginBottom: '10px' }}>📝 Rijistar Halarta</p>
                   <select className="field" value={selectedClassId} onChange={e => setSelectedClassId(e.target.value)}>
                     <option value="">— Zaɓi Aji —</option>
-                    {classes.map(c => <option key={c.id} value={c.id}>{c.className}</option>)}
+                    {classes.filter(c => c.userId === user?.uid).map(c => <option key={c.id} value={c.id}>{c.className}</option>)}
                   </select>
                   <input className="field" placeholder="Sunan Ɗalibi" value={stdName} onChange={e => setStdName(e.target.value)} />
                   <input className="field" placeholder="Shekaru" value={stdAge} onChange={e => setStdAge(e.target.value)} />
@@ -834,7 +834,7 @@ yy
                   <p style={{ fontSize: '13px', fontWeight: '600', color: C.textSecondary, marginBottom: '10px' }}>➕ Ƙirƙiri Aji</p>
                   <input className="field" placeholder="Misali: Primary 1" value={newSchoolClassName} onChange={e => setNewSchoolClassName(e.target.value)} />
                   <button className="btn-primary" style={{ marginTop: '8px' }} onClick={async () => {
-                    if (newSchoolClassName) { await addDoc(collection(db, "school_classes"), { className: newSchoolClassName }); setNewSchoolClassName(''); alert("An ƙirƙiro aji!"); }
+                    if (newSchoolClassName) { await addDoc(collection(db, "school_classes"), { className: newSchoolClassName, userId: user?.uid }); setNewSchoolClassName(''); alert("An ƙirƙiro aji!"); }
                   }}>Kaddamar da Aji</button>
                 </div>
 
@@ -842,7 +842,7 @@ yy
                   <p style={{ fontSize: '13px', fontWeight: '600', color: C.textSecondary, marginBottom: '10px' }}>💳 Biyan Kuɗaɗen Makaranta</p>
                   <select className="field" value={selectedSchoolClassId} onChange={e => setSelectedSchoolClassId(e.target.value)}>
                     <option value="">— Zaɓi Aji —</option>
-                    {schoolClasses.map(sc => <option key={sc.id} value={sc.id}>{sc.className}</option>)}
+                    {schoolClasses.filter(sc => sc.userId === user?.uid).map(sc => <option key={sc.id} value={sc.id}>{sc.className}</option>)}
                   </select>
                   <input className="field" placeholder="Sunan Ɗalibi" value={schName} onChange={e => setSchName(e.target.value)} />
                   <input className="field" placeholder="Shekaru" value={schAge} onChange={e => setSchAge(e.target.value)} />
