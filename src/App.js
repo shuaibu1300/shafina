@@ -493,6 +493,8 @@ const [schoolClasses, setSchoolClasses] = useState([]);
 
 
   const handleDelete = async (collectionName, id) => {
+    const pass = window.prompt("Shigar da kalmar sirri don share:");
+    if (pass !== UPLOAD_SECRET_PASSWORD) { alert("Kuskure: Kalmar sirri ba daidai ba ne!"); return; }
     if (!window.confirm("Ka tabbata kana son share wannan fayil?")) return;
     try {
       await deleteDoc(doc(db, collectionName, id));
@@ -691,6 +693,7 @@ const handleTransactionSubmit = async (e) => {
                 {filterBySearch(videos).map(v => (
                   <div key={v.id} className="media-card">
                     <h4>▶️ {v.title}</h4>
+                      <button style={{ marginLeft: "8px", background: "none", border: "none", color: "red", fontSize: "18px", cursor: "pointer" }} onClick={() => handleDelete("videos", v.id)}>🗑️</button>
                     <video src={v.url} controls style={{ width: '100%', borderRadius: '8px', background: '#000' }} />
                   </div>
                 ))}
@@ -744,6 +747,7 @@ yy
                 {filterBySearch(audios).map(a => (
                   <div key={a.id} className="media-card">
                     <h4>🎵 {a.title}</h4>
+                      <button style={{ marginLeft: "8px", background: "none", border: "none", color: "red", fontSize: "18px", cursor: "pointer" }} onClick={() => handleDelete("audios", a.id)}>🗑️</button>
                     <audio src={a.url} controls style={{ width: '100%' }} />
                   </div>
                 ))}
@@ -767,6 +771,7 @@ yy
                 {filterBySearch(images).map(img => (
                   <div key={img.id} className="media-card">
                     <h4>🖼️ {img.title}</h4>
+                      <button style={{ marginLeft: "8px", background: "none", border: "none", color: "red", fontSize: "18px", cursor: "pointer" }} onClick={() => handleDelete("images", img.id)}>🗑️</button>
                     <img src={img.url} alt={img.title} style={{ width: '100%', borderRadius: '8px', display: 'block' }} />
                   </div>
                 ))}
