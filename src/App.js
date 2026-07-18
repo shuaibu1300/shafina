@@ -513,6 +513,9 @@ const [schoolClasses, setSchoolClasses] = useState([]);
     const formData = new FormData();
     formData.append("file", file); // ✅ single File object
     formData.append("upload_preset", "shafina_preset");
+    if (collectionName === "pdfs") {
+      formData.append("resource_type", "raw");
+    }
 
     const xhr = new XMLHttpRequest();
 
