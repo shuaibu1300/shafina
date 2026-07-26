@@ -549,10 +549,10 @@ const [schoolClasses, setSchoolClasses] = useState([]);
 
     xhr.addEventListener('error', () => {
       alert("Upload Failed: Duba hadin intanet ɗinka!");
-      setUploadState({ activeSection: null, progress: 0, isUploading: false });
     });
 
-    xhr.open('POST', 'https://api.cloudinary.com/v1_1/djzaxvlus/auto/upload', true);
+    const uploadResourceType = collectionName === "pdfs" ? "raw" : "auto";
+  xhr.open('POST', `https://api.cloudinary.com/v1_1/djzaxvlus/${uploadResourceType}/upload`, true);
     xhr.send(formData);
   };
 
